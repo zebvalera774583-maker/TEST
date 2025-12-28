@@ -1,12 +1,20 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 
 export default function Home() {
   const [uploading, setUploading] = useState(false);
   const [imageUrl, setImageUrl] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Загружаем сохраненный URL при загрузке страницы
+  useEffect(() => {
+    const savedUrl = localStorage.getItem('uploadedImageUrl');
+    if (savedUrl) {
+      setImageUrl(savedUrl);
+    }
+  }, []);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -53,6 +61,8 @@ export default function Home() {
         .getPublicUrl(filePath);
 
       setImageUrl(urlData.publicUrl);
+      // Сохраняем URL в localStorage
+      localStorage.setItem('uploadedImageUrl', urlData.publicUrl);
     } catch (error: any) {
       console.error('Ошибка:', error);
       alert(`Ошибка: ${error.message}`);
