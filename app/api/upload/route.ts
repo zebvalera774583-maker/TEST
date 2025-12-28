@@ -49,14 +49,12 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error('Ошибка загрузки в Supabase:', {
         message: error.message,
-        statusCode: error.statusCode,
         error: error,
       });
       return NextResponse.json(
         { 
           error: 'Ошибка при загрузке файла', 
           details: error.message,
-          statusCode: error.statusCode,
         },
         { status: 500 }
       );
