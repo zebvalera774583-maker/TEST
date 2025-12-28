@@ -22,6 +22,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Проверка, что это изображение
+    if (!file.type.startsWith('image/')) {
+      return NextResponse.json(
+        { error: 'Файл должен быть изображением' },
+        { status: 400 }
+      );
+    }
+
     // Генерируем уникальное имя файла
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
