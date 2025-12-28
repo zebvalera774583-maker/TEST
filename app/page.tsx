@@ -27,41 +27,29 @@ export default function Home() {
   const loadAllImages = async () => {
     try {
       setLoadingImages(true);
-      // Получаем список всех файлов из bucket "Test"
-      const { data, error } = await supabase.storage
-        .from('Test')
-        .list('', {
-          limit: 100,
-          offset: 0,
-          sortBy: { column: 'created_at', order: 'desc' },
-        });
-
-      if (error) {
-        console.error('Ошибка загрузки списка файлов:', error);
+      
+      // Используем API endpoint для получения списка изображений
+      // Это работает через service role key, который имеет полные права
+      const response = await fetch('/api/images');
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Ошибка загрузки списка файлов:', errorData);
+        alert(`Ошибка загрузки изображений: ${errorData.error || 'Неизвестная ошибка'}`);
         return;
       }
 
-      // Фильтруем только изображения
-      const imageFiles = data?.filter((file) => {
-        const extension = file.name.split('.').pop()?.toLowerCase();
-        return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(extension || '');
-      }) || [];
-
-      // Получаем публичные URL для каждого изображения
-      const imagesWithUrls: ImageData[] = imageFiles.map((file) => {
-        const { data: urlData } = supabase.storage
-          .from('Test')
-          .getPublicUrl(file.name);
-
-        return {
-          name: file.name,
-          url: urlData.publicUrl,
-        };
-      });
-
-      setAllImages(imagesWithUrls);
+      const result = await response.json();
+      
+      if (result.success && result.images) {
+        setAllImages(result.images);
+      } else {
+        console.error('Неожиданный формат ответа:', result);
+        setAllImages([]);
+      }
     } catch (error) {
       console.error('Ошибка при загрузке изображений:', error);
+      alert('Ошибка при загрузке изображений. Проверьте консоль для деталей.');
     } finally {
       setLoadingImages(false);
     }
