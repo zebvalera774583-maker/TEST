@@ -46,6 +46,14 @@ export async function POST(request: NextRequest) {
       type: file.type,
     });
 
+    // Проверка, что supabaseAdmin инициализирован
+    if (!supabaseAdmin) {
+      return NextResponse.json(
+        { error: 'Ошибка конфигурации: Supabase не инициализирован' },
+        { status: 500 }
+      );
+    }
+
     // Загружаем файл в Supabase Storage
     const { data, error } = await supabaseAdmin.storage
       .from('Test') // Название вашего bucket
