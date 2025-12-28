@@ -20,8 +20,11 @@ export async function GET() {
       );
     }
 
+    // Сохраняем в локальную переменную для TypeScript
+    const admin = supabaseAdmin;
+
     // Получаем список всех файлов из bucket "Test"
-    const { data, error } = await supabaseAdmin.storage
+    const { data, error } = await admin.storage
       .from('Test')
       .list('', {
         limit: 100,
@@ -45,7 +48,7 @@ export async function GET() {
 
     // Получаем публичные URL для каждого изображения
     const imagesWithUrls = imageFiles.map((file) => {
-      const { data: urlData } = supabaseAdmin.storage
+      const { data: urlData } = admin.storage
         .from('Test')
         .getPublicUrl(file.name);
 
