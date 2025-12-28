@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import { supabase } from '@/lib/supabase';
 
 export default function Home() {
   const [uploading, setUploading] = useState(false);
@@ -21,22 +22,33 @@ export default function Home() {
     setImageUrl('');
 
     try {
-      const formData = new FormData();
-      formData.append('file', file);
+      // Генерируем уникальное имя файла
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = fileName;
 
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
+      // Загружаем файл напрямую в Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('Test')
+        .upload(filePath, file, {
+          contentType: file.type,
+          upsert: false,
+        });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        setImageUrl(data.url);
-      } else {
-        alert(`Ошибка: ${data.error || 'Неизвестная ошибка'}`);
+      if (error) {
+        console.error('Ошибка загрузки:', error);
+        alert(`Ошибка: ${error.message}`);
+        return;
       }
+
+      // Получаем публичный URL файла
+      const { data: urlData } = supabase.storage
+        .from('Test')
+        .getPublicUrl(filePath);
+
+      setImageUrl(urlData.publicUrl);
     } catch (error: any) {
+      console.error('Ошибка:', error);
       alert(`Ошибка: ${error.message}`);
     } finally {
       setUploading(false);
