@@ -133,13 +133,22 @@ export default function Home() {
         disabled={uploading}
       />
 
-      {/* Верхняя строка: аватар, статистика, имя и Inbox */}
+      {/* Имя профиля в левом верхнем углу */}
+      <h1 style={{ 
+        fontSize: '18px',
+        fontWeight: 'bold',
+        margin: 0,
+        marginBottom: '15px',
+      }}>
+        ashot.zebelyan
+      </h1>
+
+      {/* Аватар и статистика */}
       <div style={{
         display: 'flex',
         alignItems: 'flex-start',
         gap: '15px',
         marginBottom: '20px',
-        position: 'relative',
       }}>
         {/* Профильное фото */}
         <div style={{ position: 'relative', display: 'inline-block', flexShrink: 0 }}>
@@ -229,41 +238,24 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Имя профиля в правом верхнем углу */}
+        {/* Inbox иконка справа */}
         <div style={{
           display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'flex-end',
+          alignItems: 'center',
           gap: '4px',
+          color: '#333',
+          fontSize: '14px',
+          cursor: 'pointer',
+          alignSelf: 'flex-start',
         }}>
-          <h1 style={{ 
-            fontSize: '18px',
-            fontWeight: 'bold',
-            margin: 0,
-          }}>
-            ashot.zebelyan
-          </h1>
-          {/* Inbox иконка */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px',
-            color: '#333',
-            fontSize: '14px',
-            cursor: 'pointer',
-          }}>
-            <span>📥</span>
-            <span>Inbox</span>
-          </div>
+          <span>📥</span>
+          <span>Inbox</span>
         </div>
       </div>
 
       {/* Услуги столбиком, начало совпадает с ashot.zebelyan */}
       <div style={{ 
         marginBottom: '20px',
-        marginLeft: 'auto',
-        width: 'fit-content',
-        textAlign: 'right',
       }}>
         <div style={{
           fontSize: '16px',
@@ -271,7 +263,7 @@ export default function Home() {
           lineHeight: '1.8',
           display: 'flex',
           flexDirection: 'column',
-          alignItems: 'flex-end',
+          alignItems: 'flex-start',
         }}>
           <div>Проектная реализация</div>
           <div>Дизайн интерьера</div>
@@ -280,15 +272,8 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Города */}
+      {/* Города без слова "Города:" */}
       <div style={{ marginBottom: '20px' }}>
-        <div style={{
-          fontSize: '14px',
-          color: '#666',
-          marginBottom: '8px',
-        }}>
-          Города:
-        </div>
         <div style={{
           fontSize: '16px',
           color: '#333',
@@ -297,45 +282,13 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Кнопка "Загрузить фото" сверху кнопок */}
-      <button
-        onClick={handleButtonClick}
-        disabled={uploading}
-        style={{
-          width: '100%',
-          padding: '14px 20px',
-          fontSize: '16px',
-          fontWeight: '500',
-          backgroundColor: uploading ? '#999' : '#0070f3',
-          color: 'white',
-          border: 'none',
-          borderRadius: '8px',
-          cursor: uploading ? 'wait' : 'pointer',
-          opacity: uploading ? 0.6 : 1,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '8px',
-          marginBottom: '20px',
-          transition: 'background-color 0.2s',
-        }}
-        onMouseEnter={(e) => {
-          if (!uploading) e.currentTarget.style.backgroundColor = '#0051cc';
-        }}
-        onMouseLeave={(e) => {
-          if (!uploading) e.currentTarget.style.backgroundColor = '#0070f3';
-        }}
-      >
-        <span>📷</span>
-        {uploading ? 'Загрузка...' : 'Загрузить фото'}
-      </button>
-
-      {/* Кнопки действий вровень под городами */}
+      {/* Кнопки действий вровень между собой, над кнопкой "Загрузить фото" */}
       <div style={{
         display: 'flex',
         gap: '12px',
-        marginBottom: '40px',
+        marginBottom: '20px',
         flexWrap: 'wrap',
+        alignItems: 'center',
       }}>
         <button style={{
           padding: '10px 20px',
@@ -383,6 +336,39 @@ export default function Home() {
           Связаться
         </button>
       </div>
+
+      {/* Кнопка "Загрузить фото" под кнопками действий */}
+      <button
+        onClick={handleButtonClick}
+        disabled={uploading}
+        style={{
+          width: '100%',
+          padding: '14px 20px',
+          fontSize: '16px',
+          fontWeight: '500',
+          backgroundColor: uploading ? '#999' : '#0070f3',
+          color: 'white',
+          border: 'none',
+          borderRadius: '8px',
+          cursor: uploading ? 'wait' : 'pointer',
+          opacity: uploading ? 0.6 : 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '8px',
+          marginBottom: '40px',
+          transition: 'background-color 0.2s',
+        }}
+        onMouseEnter={(e) => {
+          if (!uploading) e.currentTarget.style.backgroundColor = '#0051cc';
+        }}
+        onMouseLeave={(e) => {
+          if (!uploading) e.currentTarget.style.backgroundColor = '#0070f3';
+        }}
+      >
+        <span>📷</span>
+        {uploading ? 'Загрузка...' : 'Загрузить фото'}
+      </button>
 
       {/* Галерея всех фотографий */}
       <div style={{ marginTop: '40px' }}>
