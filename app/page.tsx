@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import imageCompression from 'browser-image-compression';
 
 interface ImageData {
   name: string;
@@ -10,9 +11,11 @@ interface ImageData {
 
 export default function Home() {
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [imageUrl, setImageUrl] = useState<string>('');
   const [allImages, setAllImages] = useState<ImageData[]>([]);
   const [loadingImages, setLoadingImages] = useState(true);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Загружаем все изображения из Supabase при загрузке страницы
@@ -55,15 +58,27 @@ export default function Home() {
     }
   };
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // Функция сжатия изображения
+  const compressImage = async (file: File): Promise<File> => {
+    const options = {
+      maxSizeMB: 2, // Максимальный размер файла в МБ
+      maxWidthOrHeight: 1920, // Максимальная ширина или высота
+      useWebWorker: true,
+    };
 
-    // Проверка, что это изображение
-    if (!file.type.startsWith('image/')) {
-      alert('Пожалуйста, выберите изображение');
-      return;
+    try {
+      const compressedFile = await imageCompression(file, options);
+      console.log(`Сжато: ${(file.size / 1024 / 1024).toFixed(2)}MB -> ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`);
+      return compressedFile;
+    } catch (error) {
+      console.error('Ошибка сжатия:', error);
+      return file; // Возвращаем оригинальный файл, если сжатие не удалось
     }
+  };
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
     // Проверка переменных окружения
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
@@ -72,44 +87,89 @@ export default function Home() {
     }
 
     setUploading(true);
+    setUploadProgress(0);
     setImageUrl('');
 
+    const imageFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
+    
+    if (imageFiles.length === 0) {
+      alert('Пожалуйста, выберите изображения');
+      setUploading(false);
+      return;
+    }
+
+    const uploadedUrls: string[] = [];
+
     try {
-      // Генерируем уникальное имя файла
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-      const filePath = fileName;
+      // Обрабатываем файлы по очереди
+      for (let i = 0; i < imageFiles.length; i++) {
+        const file = imageFiles[i];
+        
+        // Сжимаем изображение
+        const compressedFile = await compressImage(file);
+        
+        // Обновляем прогресс
+        setUploadProgress(((i + 0.5) / imageFiles.length) * 100);
 
-      // Загружаем файл напрямую в Supabase Storage
-      const { data, error } = await supabase.storage
-        .from('Test')
-        .upload(filePath, file, {
-          contentType: file.type,
-          upsert: false,
-        });
+        // Генерируем уникальное имя файла
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}-${i}.${fileExt}`;
+        const filePath = fileName;
 
-      if (error) {
-        console.error('Ошибка загрузки:', error);
-        alert(`Ошибка: ${error.message}`);
-        return;
+        // Загружаем файл в Supabase Storage
+        const { data, error } = await supabase.storage
+          .from('Test')
+          .upload(filePath, compressedFile, {
+            contentType: compressedFile.type,
+            upsert: false,
+          });
+
+        if (error) {
+          console.error('Ошибка загрузки:', error);
+          alert(`Ошибка загрузки файла ${file.name}: ${error.message}`);
+          continue;
+        }
+
+        // Получаем публичный URL файла
+        const { data: urlData } = supabase.storage
+          .from('Test')
+          .getPublicUrl(filePath);
+
+        uploadedUrls.push(urlData.publicUrl);
+        
+        // Обновляем прогресс
+        setUploadProgress(((i + 1) / imageFiles.length) * 100);
       }
 
-      // Получаем публичный URL файла
-      const { data: urlData } = supabase.storage
-        .from('Test')
-        .getPublicUrl(filePath);
+      if (uploadedUrls.length > 0) {
+        // Устанавливаем первое загруженное изображение как профильное
+        setImageUrl(uploadedUrls[0]);
+        localStorage.setItem('uploadedImageUrl', uploadedUrls[0]);
+        
+        // Сохраняем количество изображений до обновления
+        const previousCount = allImages.length;
+        
+        // Обновляем список всех изображений
+        await loadAllImages();
+        
+        // Устанавливаем текущий индекс на первое новое изображение
+        // Используем setTimeout, чтобы дождаться обновления состояния allImages
+        setTimeout(() => {
+          setCurrentImageIndex(previousCount);
+        }, 200);
+      }
 
-      setImageUrl(urlData.publicUrl);
-      // Сохраняем URL в localStorage
-      localStorage.setItem('uploadedImageUrl', urlData.publicUrl);
-      
-      // Обновляем список всех изображений
-      await loadAllImages();
+      alert(`Успешно загружено ${uploadedUrls.length} из ${imageFiles.length} фотографий`);
     } catch (error: any) {
       console.error('Ошибка:', error);
       alert(`Ошибка: ${error.message}`);
     } finally {
       setUploading(false);
+      setUploadProgress(0);
+      // Сбрасываем input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -128,6 +188,7 @@ export default function Home() {
         ref={fileInputRef}
         type="file"
         accept="image/*"
+        multiple
         onChange={handleUpload}
         style={{ display: 'none' }}
         disabled={uploading}
@@ -367,63 +428,173 @@ export default function Home() {
         }}
       >
         <span>📷</span>
-        {uploading ? 'Загрузка...' : 'Загрузить фото'}
+        {uploading ? `Загрузка... ${Math.round(uploadProgress)}%` : 'Загрузить фото'}
       </button>
 
-      {/* Галерея всех фотографий */}
+      {/* Прогресс загрузки */}
+      {uploading && (
+        <div style={{
+          width: '100%',
+          height: '8px',
+          backgroundColor: '#e0e0e0',
+          borderRadius: '4px',
+          marginBottom: '20px',
+          overflow: 'hidden',
+        }}>
+          <div style={{
+            width: `${uploadProgress}%`,
+            height: '100%',
+            backgroundColor: '#0070f3',
+            transition: 'width 0.3s ease',
+          }} />
+        </div>
+      )}
+
+      {/* Карусель фотографий */}
       <div style={{ marginTop: '40px' }}>
         <h2 style={{ 
           fontSize: '24px',
           marginBottom: '20px',
           fontWeight: '600',
         }}>
-          Все загруженные фотографии ({allImages.length})
+          Фотографии ({allImages.length})
         </h2>
         {loadingImages ? (
           <p style={{ color: '#666' }}>Загрузка изображений...</p>
         ) : allImages.length === 0 ? (
           <p style={{ color: '#666' }}>Нет загруженных фотографий</p>
         ) : (
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
-              gap: 20,
-            }}
-          >
-            {allImages.map((image, index) => (
-              <div
-                key={index}
-                style={{
-                  border: '1px solid #ddd',
-                  borderRadius: 8,
-                  padding: 10,
-                  backgroundColor: '#f9f9f9',
-                }}
-              >
-                <img
-                  src={image.url}
-                  alt={image.name}
+          <div style={{ position: 'relative' }}>
+            {/* Карусель */}
+            <div style={{
+              position: 'relative',
+              width: '100%',
+              overflow: 'hidden',
+              borderRadius: '12px',
+              backgroundColor: '#f5f5f5',
+            }}>
+              {/* Контейнер изображений */}
+              <div style={{
+                display: 'flex',
+                transform: `translateX(-${currentImageIndex * 100}%)`,
+                transition: 'transform 0.3s ease',
+              }}>
+                {allImages.map((image, index) => (
+                  <div
+                    key={index}
+                    style={{
+                      minWidth: '100%',
+                      width: '100%',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <img
+                      src={image.url}
+                      alt={image.name}
+                      style={{
+                        width: '100%',
+                        height: '500px',
+                        objectFit: 'contain',
+                        display: 'block',
+                        backgroundColor: '#fff',
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              {/* Стрелка влево */}
+              {allImages.length > 1 && currentImageIndex > 0 && (
+                <button
+                  onClick={() => setCurrentImageIndex(currentImageIndex - 1)}
                   style={{
-                    width: '100%',
-                    height: '200px',
-                    objectFit: 'cover',
-                    borderRadius: 4,
-                    display: 'block',
-                  }}
-                />
-                <p
-                  style={{
-                    marginTop: 10,
-                    fontSize: 12,
-                    color: '#666',
-                    wordBreak: 'break-all',
+                    position: 'absolute',
+                    left: '20px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    width: '50px',
+                    height: '50px',
+                    borderRadius: '50%',
+                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                    color: 'white',
+                    border: 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '24px',
+                    zIndex: 10,
                   }}
                 >
-                  {image.name}
-                </p>
+                  ‹
+                </button>
+              )}
+
+              {/* Стрелка вправо */}
+              {allImages.length > 1 && currentImageIndex < allImages.length - 1 && (
+                <button
+                  onClick={() => setCurrentImageIndex(currentImageIndex + 1)}
+                  style={{
+                    position: 'absolute',
+                    right: '20px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    width: '50px',
+                    height: '50px',
+                    borderRadius: '50%',
+                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                    color: 'white',
+                    border: 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '24px',
+                    zIndex: 10,
+                  }}
+                >
+                  ›
+                </button>
+              )}
+            </div>
+
+            {/* Точки-индикаторы */}
+            {allImages.length > 1 && (
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                gap: '8px',
+                marginTop: '20px',
+              }}>
+                {allImages.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentImageIndex(index)}
+                    style={{
+                      width: '12px',
+                      height: '12px',
+                      borderRadius: '50%',
+                      border: 'none',
+                      backgroundColor: index === currentImageIndex ? '#0070f3' : '#ccc',
+                      cursor: 'pointer',
+                      transition: 'background-color 0.2s',
+                    }}
+                  />
+                ))}
               </div>
-            ))}
+            )}
+
+            {/* Информация о текущем фото */}
+            {allImages.length > 0 && (
+              <div style={{
+                textAlign: 'center',
+                marginTop: '15px',
+                color: '#666',
+                fontSize: '14px',
+              }}>
+                {currentImageIndex + 1} / {allImages.length}
+              </div>
+            )}
           </div>
         )}
       </div>
