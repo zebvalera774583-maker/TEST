@@ -133,12 +133,13 @@ export default function Home() {
         disabled={uploading}
       />
 
-      {/* Профиль: фото, имя и Inbox */}
+      {/* Верхняя строка: аватар, статистика, имя и Inbox */}
       <div style={{
         display: 'flex',
-        alignItems: 'center',
+        alignItems: 'flex-start',
         gap: '15px',
         marginBottom: '20px',
+        position: 'relative',
       }}>
         {/* Профильное фото */}
         <div style={{ position: 'relative', display: 'inline-block', flexShrink: 0 }}>
@@ -194,83 +195,93 @@ export default function Home() {
           </button>
         </div>
 
-        {/* Имя профиля */}
-        <h1 style={{ 
-          fontSize: '18px',
-          fontWeight: 'bold',
-          margin: 0,
+        {/* Статистика вровень с верхом аватара */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, 1fr)',
+          gap: '15px',
           flex: 1,
+          alignSelf: 'flex-start',
         }}>
-          ashot.zebelyan
-        </h1>
+          <div style={{ 
+            fontSize: '14px', 
+            color: '#333',
+            textAlign: 'center',
+          }}>
+            <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '4px' }}>40</div>
+            <div style={{ fontSize: '12px', color: '#666' }}>уникальных кейсов</div>
+          </div>
+          <div style={{ 
+            fontSize: '14px', 
+            color: '#333',
+            textAlign: 'center',
+          }}>
+            <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '4px' }}>2578</div>
+            <div style={{ fontSize: '12px', color: '#666' }}>проектов</div>
+          </div>
+          <div style={{ 
+            fontSize: '14px', 
+            color: '#333',
+            textAlign: 'center',
+          }}>
+            <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '4px' }}>4</div>
+            <div style={{ fontSize: '12px', color: '#666' }}>города</div>
+          </div>
+        </div>
 
-        {/* Inbox иконка */}
+        {/* Имя профиля в правом верхнем углу */}
         <div style={{
           display: 'flex',
-          alignItems: 'center',
+          flexDirection: 'column',
+          alignItems: 'flex-end',
           gap: '4px',
-          color: '#333',
-          fontSize: '14px',
-          cursor: 'pointer',
         }}>
-          <span>📥</span>
-          <span>Inbox</span>
+          <h1 style={{ 
+            fontSize: '18px',
+            fontWeight: 'bold',
+            margin: 0,
+          }}>
+            ashot.zebelyan
+          </h1>
+          {/* Inbox иконка */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            color: '#333',
+            fontSize: '14px',
+            cursor: 'pointer',
+          }}>
+            <span>📥</span>
+            <span>Inbox</span>
+          </div>
         </div>
       </div>
 
-      {/* Статистика в три колонки */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(3, 1fr)',
-        gap: '15px',
-        marginBottom: '30px',
+      {/* Услуги столбиком, начало совпадает с ashot.zebelyan */}
+      <div style={{ 
+        marginBottom: '20px',
+        marginLeft: 'auto',
+        width: 'fit-content',
+        textAlign: 'right',
       }}>
-        <div style={{ 
-          fontSize: '14px', 
-          color: '#333',
-          textAlign: 'center',
-        }}>
-          <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '4px' }}>40</div>
-          <div style={{ fontSize: '12px', color: '#666' }}>уникальных кейсов</div>
-        </div>
-        <div style={{ 
-          fontSize: '14px', 
-          color: '#333',
-          textAlign: 'center',
-        }}>
-          <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '4px' }}>2578</div>
-          <div style={{ fontSize: '12px', color: '#666' }}>проектов</div>
-        </div>
-        <div style={{ 
-          fontSize: '14px', 
-          color: '#333',
-          textAlign: 'center',
-        }}>
-          <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '4px' }}>4</div>
-          <div style={{ fontSize: '12px', color: '#666' }}>города</div>
-        </div>
-      </div>
-
-      {/* Услуги */}
-      <div style={{ marginBottom: '20px' }}>
-        <div style={{
-          fontSize: '14px',
-          color: '#666',
-          marginBottom: '8px',
-        }}>
-          Услуги:
-        </div>
         <div style={{
           fontSize: '16px',
           color: '#333',
-          lineHeight: '1.6',
+          lineHeight: '1.8',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'flex-end',
         }}>
-          Проектная реализация, Дизайн интерьера, Мебель на заказ, Комплектация
+          <div>Проектная реализация</div>
+          <div>Дизайн интерьера</div>
+          <div>Мебель на заказ</div>
+          <div>Комплектация</div>
         </div>
       </div>
 
       {/* Города */}
-      <div style={{ marginBottom: '30px' }}>
+      <div style={{ marginBottom: '20px' }}>
         <div style={{
           fontSize: '14px',
           color: '#666',
@@ -286,11 +297,44 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Кнопки действий */}
+      {/* Кнопка "Загрузить фото" сверху кнопок */}
+      <button
+        onClick={handleButtonClick}
+        disabled={uploading}
+        style={{
+          width: '100%',
+          padding: '14px 20px',
+          fontSize: '16px',
+          fontWeight: '500',
+          backgroundColor: uploading ? '#999' : '#0070f3',
+          color: 'white',
+          border: 'none',
+          borderRadius: '8px',
+          cursor: uploading ? 'wait' : 'pointer',
+          opacity: uploading ? 0.6 : 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '8px',
+          marginBottom: '20px',
+          transition: 'background-color 0.2s',
+        }}
+        onMouseEnter={(e) => {
+          if (!uploading) e.currentTarget.style.backgroundColor = '#0051cc';
+        }}
+        onMouseLeave={(e) => {
+          if (!uploading) e.currentTarget.style.backgroundColor = '#0070f3';
+        }}
+      >
+        <span>📷</span>
+        {uploading ? 'Загрузка...' : 'Загрузить фото'}
+      </button>
+
+      {/* Кнопки действий вровень под городами */}
       <div style={{
         display: 'flex',
         gap: '12px',
-        marginBottom: '20px',
+        marginBottom: '40px',
         flexWrap: 'wrap',
       }}>
         <button style={{
@@ -339,39 +383,6 @@ export default function Home() {
           Связаться
         </button>
       </div>
-
-      {/* Кнопка "Загрузить фото" */}
-      <button
-        onClick={handleButtonClick}
-        disabled={uploading}
-        style={{
-          width: '100%',
-          padding: '14px 20px',
-          fontSize: '16px',
-          fontWeight: '500',
-          backgroundColor: uploading ? '#999' : '#0070f3',
-          color: 'white',
-          border: 'none',
-          borderRadius: '8px',
-          cursor: uploading ? 'wait' : 'pointer',
-          opacity: uploading ? 0.6 : 1,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '8px',
-          marginBottom: '40px',
-          transition: 'background-color 0.2s',
-        }}
-        onMouseEnter={(e) => {
-          if (!uploading) e.currentTarget.style.backgroundColor = '#0051cc';
-        }}
-        onMouseLeave={(e) => {
-          if (!uploading) e.currentTarget.style.backgroundColor = '#0070f3';
-        }}
-      >
-        <span>📷</span>
-        {uploading ? 'Загрузка...' : 'Загрузить фото'}
-      </button>
 
       {/* Галерея всех фотографий */}
       <div style={{ marginTop: '40px' }}>
