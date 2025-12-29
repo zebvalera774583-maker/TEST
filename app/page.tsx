@@ -49,7 +49,9 @@ export default function Home() {
 
     return (
       <div 
-        onClick={() => onOpenFullscreen(images, groupId)}
+        onClick={() => {
+          onOpenFullscreen(images, groupId);
+        }}
         style={{ 
           position: 'relative', 
           aspectRatio: '1', 
@@ -84,6 +86,7 @@ export default function Home() {
                   height: '100%',
                   objectFit: 'cover',
                   display: 'block',
+                  pointerEvents: 'none', // Позволяет клику проходить через изображение
                 }}
               />
             </div>
@@ -720,6 +723,11 @@ export default function Home() {
 // Компонент карусели для полноэкранного режима
 const FullscreenCarousel = ({ images, onClose }: { images: ImageData[]; onClose: () => void }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
+
+  // Сбрасываем индекс при изменении images
+  useEffect(() => {
+    setCurrentIndex(0);
+  }, [images]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
