@@ -7,6 +7,7 @@ import imageCompression from 'browser-image-compression';
 interface ImageData {
   name: string;
   url: string;
+  groupId?: string; // ID группы загрузки
 }
 
 export default function Home() {
@@ -15,7 +16,6 @@ export default function Home() {
   const [imageUrl, setImageUrl] = useState<string>('');
   const [allImages, setAllImages] = useState<ImageData[]>([]);
   const [loadingImages, setLoadingImages] = useState(true);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Загружаем все изображения из Supabase при загрузке страницы
@@ -26,6 +26,145 @@ export default function Home() {
       setImageUrl(savedUrl);
     }
   }, []);
+
+  // Функция для группировки фото по groupId
+  const groupImagesByGroupId = (images: ImageData[]): { [key: string]: ImageData[] } => {
+    const groups: { [key: string]: ImageData[] } = {};
+    images.forEach(img => {
+      const groupId = img.groupId || `single-${img.name}`;
+      if (!groups[groupId]) {
+        groups[groupId] = [];
+      }
+      groups[groupId].push(img);
+    });
+    return groups;
+  };
+
+  // Компонент карусели для одной группы фото
+  const CarouselComponent = ({ images, groupId }: { images: ImageData[]; groupId: string }) => {
+    const [currentIndex, setCurrentIndex] = useState(0);
+
+    if (images.length === 0) return null;
+
+    return (
+      <div style={{ position: 'relative', aspectRatio: '1', borderRadius: '12px', overflow: 'hidden', backgroundColor: '#f5f5f5' }}>
+        {/* Контейнер изображений */}
+        <div style={{
+          display: 'flex',
+          transform: `translateX(-${currentIndex * 100}%)`,
+          transition: 'transform 0.3s ease',
+          height: '100%',
+        }}>
+          {images.map((image, index) => (
+            <div
+              key={index}
+              style={{
+                minWidth: '100%',
+                width: '100%',
+                flexShrink: 0,
+                height: '100%',
+              }}
+            >
+              <img
+                src={image.url}
+                alt={image.name}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  display: 'block',
+                }}
+              />
+            </div>
+          ))}
+        </div>
+
+        {/* Стрелка влево */}
+        {images.length > 1 && currentIndex > 0 && (
+          <button
+            onClick={() => setCurrentIndex(currentIndex - 1)}
+            style={{
+              position: 'absolute',
+              left: '10px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              width: '30px',
+              height: '30px',
+              borderRadius: '50%',
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              color: 'white',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '18px',
+              zIndex: 10,
+            }}
+          >
+            ‹
+          </button>
+        )}
+
+        {/* Стрелка вправо */}
+        {images.length > 1 && currentIndex < images.length - 1 && (
+          <button
+            onClick={() => setCurrentIndex(currentIndex + 1)}
+            style={{
+              position: 'absolute',
+              right: '10px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              width: '30px',
+              height: '30px',
+              borderRadius: '50%',
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              color: 'white',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '18px',
+              zIndex: 10,
+            }}
+          >
+            ›
+          </button>
+        )}
+
+        {/* Точки-индикаторы */}
+        {images.length > 1 && (
+          <div style={{
+            position: 'absolute',
+            bottom: '10px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            display: 'flex',
+            gap: '6px',
+            zIndex: 10,
+          }}>
+            {images.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => setCurrentIndex(index)}
+                style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  border: 'none',
+                  backgroundColor: index === currentIndex ? '#fff' : 'rgba(255, 255, 255, 0.5)',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s',
+                  padding: 0,
+                }}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   const loadAllImages = async () => {
     try {
@@ -45,7 +184,22 @@ export default function Home() {
       const result = await response.json();
       
       if (result.success && result.images) {
-        setAllImages(result.images);
+        // Группируем фото по groupId (извлекаем из имени файла)
+        const groupedImages = result.images.map((img: ImageData) => {
+          // Извлекаем groupId из имени файла (формат: groupId-index.ext)
+          const nameParts = img.name.split('-');
+          if (nameParts.length >= 2 && nameParts[0].startsWith('group')) {
+            // Находим индекс, где заканчивается groupId (до последнего числа перед расширением)
+            const groupIdMatch = img.name.match(/^(group-[^-]+-\w+)-/);
+            if (groupIdMatch) {
+              return { ...img, groupId: groupIdMatch[1] };
+            }
+          }
+          // Для старых фото без groupId создаем отдельную группу для каждого
+          return { ...img, groupId: `single-${img.name}` };
+        });
+        
+        setAllImages(groupedImages);
       } else {
         console.error('Неожиданный формат ответа:', result);
         setAllImages([]);
@@ -98,6 +252,8 @@ export default function Home() {
       return;
     }
 
+    // Генерируем групповой ID для этой загрузки
+    const groupId = `group-${Date.now()}-${Math.random().toString(36).substring(7)}`;
     const uploadedUrls: string[] = [];
 
     try {
@@ -111,9 +267,9 @@ export default function Home() {
         // Обновляем прогресс
         setUploadProgress(((i + 0.5) / imageFiles.length) * 100);
 
-        // Генерируем уникальное имя файла
+        // Генерируем уникальное имя файла с групповым ID
         const fileExt = file.name.split('.').pop();
-        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}-${i}.${fileExt}`;
+        const fileName = `${groupId}-${i}.${fileExt}`;
         const filePath = fileName;
 
         // Загружаем файл в Supabase Storage
@@ -146,17 +302,8 @@ export default function Home() {
         setImageUrl(uploadedUrls[0]);
         localStorage.setItem('uploadedImageUrl', uploadedUrls[0]);
         
-        // Сохраняем количество изображений до обновления
-        const previousCount = allImages.length;
-        
         // Обновляем список всех изображений
         await loadAllImages();
-        
-        // Устанавливаем текущий индекс на первое новое изображение
-        // Используем setTimeout, чтобы дождаться обновления состояния allImages
-        setTimeout(() => {
-          setCurrentImageIndex(previousCount);
-        }, 200);
       }
 
       alert(`Успешно загружено ${uploadedUrls.length} из ${imageFiles.length} фотографий`);
@@ -450,152 +597,36 @@ export default function Home() {
         </div>
       )}
 
-      {/* Карусель фотографий */}
+      {/* Сетка каруселей фотографий */}
       <div style={{ marginTop: '40px' }}>
         <h2 style={{ 
           fontSize: '24px',
           marginBottom: '20px',
           fontWeight: '600',
         }}>
-          Фотографии ({allImages.length})
+          Фотографии
         </h2>
         {loadingImages ? (
           <p style={{ color: '#666' }}>Загрузка изображений...</p>
         ) : allImages.length === 0 ? (
           <p style={{ color: '#666' }}>Нет загруженных фотографий</p>
         ) : (
-          <div style={{ position: 'relative' }}>
-            {/* Карусель */}
-            <div style={{
-              position: 'relative',
-              width: '100%',
-              overflow: 'hidden',
-              borderRadius: '12px',
-              backgroundColor: '#f5f5f5',
-            }}>
-              {/* Контейнер изображений */}
+          (() => {
+            const groupedImages = groupImagesByGroupId(allImages);
+            const groups = Object.entries(groupedImages);
+            
+            return (
               <div style={{
-                display: 'flex',
-                transform: `translateX(-${currentImageIndex * 100}%)`,
-                transition: 'transform 0.3s ease',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: '15px',
               }}>
-                {allImages.map((image, index) => (
-                  <div
-                    key={index}
-                    style={{
-                      minWidth: '100%',
-                      width: '100%',
-                      flexShrink: 0,
-                    }}
-                  >
-                    <img
-                      src={image.url}
-                      alt={image.name}
-                      style={{
-                        width: '100%',
-                        height: '500px',
-                        objectFit: 'contain',
-                        display: 'block',
-                        backgroundColor: '#fff',
-                      }}
-                    />
-                  </div>
+                {groups.map(([groupId, images]) => (
+                  <CarouselComponent key={groupId} images={images} groupId={groupId} />
                 ))}
               </div>
-
-              {/* Стрелка влево */}
-              {allImages.length > 1 && currentImageIndex > 0 && (
-                <button
-                  onClick={() => setCurrentImageIndex(currentImageIndex - 1)}
-                  style={{
-                    position: 'absolute',
-                    left: '20px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    width: '50px',
-                    height: '50px',
-                    borderRadius: '50%',
-                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                    color: 'white',
-                    border: 'none',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '24px',
-                    zIndex: 10,
-                  }}
-                >
-                  ‹
-                </button>
-              )}
-
-              {/* Стрелка вправо */}
-              {allImages.length > 1 && currentImageIndex < allImages.length - 1 && (
-                <button
-                  onClick={() => setCurrentImageIndex(currentImageIndex + 1)}
-                  style={{
-                    position: 'absolute',
-                    right: '20px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    width: '50px',
-                    height: '50px',
-                    borderRadius: '50%',
-                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                    color: 'white',
-                    border: 'none',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '24px',
-                    zIndex: 10,
-                  }}
-                >
-                  ›
-                </button>
-              )}
-            </div>
-
-            {/* Точки-индикаторы */}
-            {allImages.length > 1 && (
-              <div style={{
-                display: 'flex',
-                justifyContent: 'center',
-                gap: '8px',
-                marginTop: '20px',
-              }}>
-                {allImages.map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setCurrentImageIndex(index)}
-                    style={{
-                      width: '12px',
-                      height: '12px',
-                      borderRadius: '50%',
-                      border: 'none',
-                      backgroundColor: index === currentImageIndex ? '#0070f3' : '#ccc',
-                      cursor: 'pointer',
-                      transition: 'background-color 0.2s',
-                    }}
-                  />
-                ))}
-              </div>
-            )}
-
-            {/* Информация о текущем фото */}
-            {allImages.length > 0 && (
-              <div style={{
-                textAlign: 'center',
-                marginTop: '15px',
-                color: '#666',
-                fontSize: '14px',
-              }}>
-                {currentImageIndex + 1} / {allImages.length}
-              </div>
-            )}
-          </div>
+            );
+          })()
         )}
       </div>
     </main>
