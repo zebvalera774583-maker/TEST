@@ -16,6 +16,7 @@ export default function Home() {
   const [imageUrl, setImageUrl] = useState<string>('');
   const [allImages, setAllImages] = useState<ImageData[]>([]);
   const [loadingImages, setLoadingImages] = useState(true);
+  const [openCarousel, setOpenCarousel] = useState<{ images: ImageData[]; groupId: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Загружаем все изображения из Supabase при загрузке страницы
@@ -41,13 +42,23 @@ export default function Home() {
   };
 
   // Компонент карусели для одной группы фото
-  const CarouselComponent = ({ images, groupId }: { images: ImageData[]; groupId: string }) => {
+  const CarouselComponent = ({ images, groupId, onOpenFullscreen }: { images: ImageData[]; groupId: string; onOpenFullscreen: (images: ImageData[], groupId: string) => void }) => {
     const [currentIndex, setCurrentIndex] = useState(0);
 
     if (images.length === 0) return null;
 
     return (
-      <div style={{ position: 'relative', aspectRatio: '1', borderRadius: '12px', overflow: 'hidden', backgroundColor: '#f5f5f5' }}>
+      <div 
+        onClick={() => onOpenFullscreen(images, groupId)}
+        style={{ 
+          position: 'relative', 
+          aspectRatio: '1', 
+          borderRadius: '12px', 
+          overflow: 'hidden', 
+          backgroundColor: '#f5f5f5',
+          cursor: 'pointer',
+        }}
+      >
         {/* Контейнер изображений */}
         <div style={{
           display: 'flex',
@@ -82,7 +93,10 @@ export default function Home() {
         {/* Стрелка влево */}
         {images.length > 1 && currentIndex > 0 && (
           <button
-            onClick={() => setCurrentIndex(currentIndex - 1)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setCurrentIndex(currentIndex - 1);
+            }}
             style={{
               position: 'absolute',
               left: '10px',
@@ -109,7 +123,10 @@ export default function Home() {
         {/* Стрелка вправо */}
         {images.length > 1 && currentIndex < images.length - 1 && (
           <button
-            onClick={() => setCurrentIndex(currentIndex + 1)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setCurrentIndex(currentIndex + 1);
+            }}
             style={{
               position: 'absolute',
               right: '10px',
@@ -147,7 +164,10 @@ export default function Home() {
             {images.map((_, index) => (
               <button
                 key={index}
-                onClick={() => setCurrentIndex(index)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCurrentIndex(index);
+                }}
                 style={{
                   width: '8px',
                   height: '8px',
@@ -622,13 +642,254 @@ export default function Home() {
                 gap: '15px',
               }}>
                 {groups.map(([groupId, images]) => (
-                  <CarouselComponent key={groupId} images={images} groupId={groupId} />
+                  <CarouselComponent 
+                    key={groupId} 
+                    images={images} 
+                    groupId={groupId}
+                    onOpenFullscreen={setOpenCarousel}
+                  />
                 ))}
               </div>
             );
           })()
         )}
       </div>
+
+      {/* Модальное окно на весь экран */}
+      {openCarousel && (
+        <div
+          onClick={() => setOpenCarousel(null)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.95)',
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              setOpenCarousel(null);
+            }
+          }}
+          tabIndex={0}
+        >
+          {/* Кнопка закрытия */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setOpenCarousel(null);
+            }}
+            style={{
+              position: 'absolute',
+              top: '20px',
+              right: '20px',
+              width: '40px',
+              height: '40px',
+              borderRadius: '50%',
+              backgroundColor: 'rgba(255, 255, 255, 0.2)',
+              color: 'white',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '24px',
+              zIndex: 1001,
+            }}
+          >
+            ×
+          </button>
+
+          {/* Карусель в полном размере */}
+          <FullscreenCarousel 
+            images={openCarousel.images}
+            onClose={() => setOpenCarousel(null)}
+          />
+        </div>
+      )}
     </main>
+  );
+}
+
+// Компонент карусели для полноэкранного режима
+const FullscreenCarousel = ({ images, onClose }: { images: ImageData[]; onClose: () => void }) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft' && currentIndex > 0) {
+        setCurrentIndex(currentIndex - 1);
+      } else if (e.key === 'ArrowRight' && currentIndex < images.length - 1) {
+        setCurrentIndex(currentIndex + 1);
+      } else if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentIndex, images.length, onClose]);
+
+  return (
+    <div
+      onClick={(e) => e.stopPropagation()}
+      style={{
+        position: 'relative',
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        maxWidth: '90vw',
+        maxHeight: '90vh',
+      }}
+    >
+      {/* Контейнер изображений */}
+      <div style={{
+        display: 'flex',
+        transform: `translateX(-${currentIndex * 100}%)`,
+        transition: 'transform 0.3s ease',
+        width: '100%',
+        height: '100%',
+      }}>
+        {images.map((image, index) => (
+          <div
+            key={index}
+            style={{
+              minWidth: '100%',
+              width: '100%',
+              flexShrink: 0,
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <img
+              src={image.url}
+              alt={image.name}
+              style={{
+                maxWidth: '100%',
+                maxHeight: '100%',
+                objectFit: 'contain',
+                display: 'block',
+              }}
+            />
+          </div>
+        ))}
+      </div>
+
+      {/* Стрелка влево */}
+      {images.length > 1 && currentIndex > 0 && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setCurrentIndex(currentIndex - 1);
+          }}
+          style={{
+            position: 'absolute',
+            left: '20px',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            width: '50px',
+            height: '50px',
+            borderRadius: '50%',
+            backgroundColor: 'rgba(255, 255, 255, 0.2)',
+            color: 'white',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '30px',
+            zIndex: 1002,
+          }}
+        >
+          ‹
+        </button>
+      )}
+
+      {/* Стрелка вправо */}
+      {images.length > 1 && currentIndex < images.length - 1 && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setCurrentIndex(currentIndex + 1);
+          }}
+          style={{
+            position: 'absolute',
+            right: '20px',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            width: '50px',
+            height: '50px',
+            borderRadius: '50%',
+            backgroundColor: 'rgba(255, 255, 255, 0.2)',
+            color: 'white',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '30px',
+            zIndex: 1002,
+          }}
+        >
+          ›
+        </button>
+      )}
+
+      {/* Точки-индикаторы */}
+      {images.length > 1 && (
+        <div style={{
+          position: 'absolute',
+          bottom: '30px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          display: 'flex',
+          gap: '10px',
+          zIndex: 1002,
+        }}>
+          {images.map((_, index) => (
+            <button
+              key={index}
+              onClick={(e) => {
+                e.stopPropagation();
+                setCurrentIndex(index);
+              }}
+              style={{
+                width: '12px',
+                height: '12px',
+                borderRadius: '50%',
+                border: 'none',
+                backgroundColor: index === currentIndex ? '#fff' : 'rgba(255, 255, 255, 0.5)',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s',
+                padding: 0,
+              }}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Счетчик */}
+      <div style={{
+        position: 'absolute',
+        top: '30px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        color: 'white',
+        fontSize: '18px',
+        zIndex: 1002,
+      }}>
+        {currentIndex + 1} / {images.length}
+      </div>
+    </div>
   );
 }
