@@ -17,6 +17,8 @@ export default function Home() {
   const [allImages, setAllImages] = useState<ImageData[]>([]);
   const [loadingImages, setLoadingImages] = useState(true);
   const [openCarousel, setOpenCarousel] = useState<{ images: ImageData[]; groupId: string } | null>(null);
+  const [captions, setCaptions] = useState<{ [groupId: string]: string }>({});
+  const [currentCaption, setCurrentCaption] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Загружаем все изображения из Supabase при загрузке страницы
@@ -42,25 +44,27 @@ export default function Home() {
   };
 
   // Компонент карусели для одной группы фото
-  const CarouselComponent = ({ images, groupId, onOpenFullscreen }: { images: ImageData[]; groupId: string; onOpenFullscreen: (images: ImageData[], groupId: string) => void }) => {
+  const CarouselComponent = ({ images, groupId, caption, onOpenFullscreen }: { images: ImageData[]; groupId: string; caption?: string; onOpenFullscreen: (images: ImageData[], groupId: string) => void }) => {
     const [currentIndex, setCurrentIndex] = useState(0);
 
     if (images.length === 0) return null;
 
     return (
-      <div 
-        onClick={() => {
-          onOpenFullscreen(images, groupId);
-        }}
-        style={{ 
-          position: 'relative', 
-          aspectRatio: '1', 
-          borderRadius: '12px', 
-          overflow: 'hidden', 
-          backgroundColor: '#f5f5f5',
-          cursor: 'pointer',
-        }}
-      >
+      <div style={{ marginBottom: '20px' }}>
+        <div 
+          onClick={() => {
+            onOpenFullscreen(images, groupId);
+          }}
+          style={{ 
+            position: 'relative', 
+            aspectRatio: '1', 
+            borderRadius: '12px', 
+            overflow: 'hidden', 
+            backgroundColor: '#f5f5f5',
+            cursor: 'pointer',
+            marginBottom: '8px',
+          }}
+        >
         {/* Контейнер изображений */}
         <div style={{
           display: 'flex',
@@ -183,6 +187,19 @@ export default function Home() {
                 }}
               />
             ))}
+          </div>
+        )}
+        </div>
+        {/* Подпись под каруселью */}
+        {caption && (
+          <div style={{
+            fontSize: '14px',
+            color: '#333',
+            padding: '8px 4px',
+            lineHeight: '1.4',
+            wordBreak: 'break-word',
+          }}>
+            {caption}
           </div>
         )}
       </div>
@@ -324,6 +341,16 @@ export default function Home() {
         // Устанавливаем первое загруженное изображение как профильное
         setImageUrl(uploadedUrls[0]);
         localStorage.setItem('uploadedImageUrl', uploadedUrls[0]);
+        
+        // Сохраняем подпись для этой группы
+        if (currentCaption.trim()) {
+          const newCaptions = { ...captions, [groupId]: currentCaption.trim() };
+          setCaptions(newCaptions);
+          localStorage.setItem('imageCaptions', JSON.stringify(newCaptions));
+        }
+        
+        // Сбрасываем поле подписи
+        setCurrentCaption('');
         
         // Обновляем список всех изображений
         await loadAllImages();
@@ -568,6 +595,26 @@ export default function Home() {
         </button>
       </div>
 
+      {/* Поле для подписи */}
+      <div style={{ marginBottom: '15px' }}>
+        <input
+          type="text"
+          placeholder="Добавить подпись к фото..."
+          value={currentCaption}
+          onChange={(e) => setCurrentCaption(e.target.value)}
+          disabled={uploading}
+          style={{
+            width: '100%',
+            padding: '12px 16px',
+            fontSize: '14px',
+            border: '1px solid #ddd',
+            borderRadius: '8px',
+            outline: 'none',
+            fontFamily: 'inherit',
+          }}
+        />
+      </div>
+
       {/* Кнопка "Загрузить фото" под кнопками действий */}
       <button
         onClick={handleButtonClick}
@@ -649,6 +696,7 @@ export default function Home() {
                     key={groupId} 
                     images={images} 
                     groupId={groupId}
+                    caption={captions[groupId]}
                     onOpenFullscreen={(imgs, gId) => setOpenCarousel({ images: imgs, groupId: gId })}
                   />
                 ))}
@@ -712,6 +760,7 @@ export default function Home() {
           {/* Карусель в полном размере */}
           <FullscreenCarousel 
             images={openCarousel.images}
+            caption={captions[openCarousel.groupId]}
             onClose={() => setOpenCarousel(null)}
           />
         </div>
@@ -721,7 +770,7 @@ export default function Home() {
 }
 
 // Компонент карусели для полноэкранного режима
-const FullscreenCarousel = ({ images, onClose }: { images: ImageData[]; onClose: () => void }) => {
+const FullscreenCarousel = ({ images, caption, onClose }: { images: ImageData[]; caption?: string; onClose: () => void }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   // Сбрасываем индекс при изменении images
@@ -898,6 +947,26 @@ const FullscreenCarousel = ({ images, onClose }: { images: ImageData[]; onClose:
       }}>
         {currentIndex + 1} / {images.length}
       </div>
+
+      {/* Подпись внизу */}
+      {caption && (
+        <div style={{
+          position: 'absolute',
+          bottom: '80px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          color: 'white',
+          fontSize: '16px',
+          textAlign: 'center',
+          maxWidth: '80%',
+          zIndex: 1002,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          padding: '12px 20px',
+          borderRadius: '8px',
+        }}>
+          {caption}
+        </div>
+      )}
     </div>
   );
 }
