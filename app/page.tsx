@@ -649,7 +649,7 @@ export default function Home() {
                     key={groupId} 
                     images={images} 
                     groupId={groupId}
-                    onOpenFullscreen={setOpenCarousel}
+                    onOpenFullscreen={(imgs, gId) => setOpenCarousel({ images: imgs, groupId: gId })}
                   />
                 ))}
               </div>
