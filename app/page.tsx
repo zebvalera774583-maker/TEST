@@ -133,30 +133,18 @@ export default function Home() {
         disabled={uploading}
       />
 
-      {/* Заголовок профиля */}
-      <h1 style={{ 
-        fontSize: '32px',
-        fontWeight: 'bold',
-        marginBottom: '40px',
-        textAlign: 'center',
-      }}>
-        ashot.zebelyan
-      </h1>
-
-      {/* Профиль с фото и статистикой */}
+      {/* Профиль: фото, имя и Inbox */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        gap: '30px',
-        marginBottom: '30px',
-        flexWrap: 'wrap',
-        justifyContent: 'center',
+        gap: '15px',
+        marginBottom: '20px',
       }}>
         {/* Профильное фото */}
-        <div style={{ position: 'relative', display: 'inline-block' }}>
+        <div style={{ position: 'relative', display: 'inline-block', flexShrink: 0 }}>
           <div style={{
-            width: '120px',
-            height: '120px',
+            width: '60px',
+            height: '60px',
             borderRadius: '50%',
             backgroundColor: '#e0e0e0',
             border: '2px solid #ddd',
@@ -176,7 +164,7 @@ export default function Home() {
                 }}
               />
             ) : (
-              <div style={{ fontSize: '48px', color: '#999' }}>👤</div>
+              <div style={{ fontSize: '24px', color: '#999' }}>👤</div>
             )}
           </div>
           <button
@@ -186,39 +174,80 @@ export default function Home() {
               position: 'absolute',
               bottom: '0',
               right: '0',
-              width: '36px',
-              height: '36px',
+              width: '20px',
+              height: '20px',
               borderRadius: '50%',
               backgroundColor: '#0070f3',
-              border: '3px solid white',
+              border: '2px solid white',
               color: 'white',
-              fontSize: '20px',
+              fontSize: '12px',
               cursor: uploading ? 'wait' : 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               opacity: uploading ? 0.6 : 1,
+              padding: 0,
+              lineHeight: 1,
             }}
           >
             +
           </button>
         </div>
 
-        {/* Статистика */}
+        {/* Имя профиля */}
+        <h1 style={{ 
+          fontSize: '18px',
+          fontWeight: 'bold',
+          margin: 0,
+          flex: 1,
+        }}>
+          ashot.zebelyan
+        </h1>
+
+        {/* Inbox иконка */}
         <div style={{
           display: 'flex',
-          flexDirection: 'column',
-          gap: '12px',
+          alignItems: 'center',
+          gap: '4px',
+          color: '#333',
+          fontSize: '14px',
+          cursor: 'pointer',
         }}>
-          <div style={{ fontSize: '16px', color: '#333' }}>
-            <strong>40</strong> уникальных кейсов
-          </div>
-          <div style={{ fontSize: '16px', color: '#333' }}>
-            <strong>2578</strong> проектов
-          </div>
-          <div style={{ fontSize: '16px', color: '#333' }}>
-            <strong>4</strong> города
-          </div>
+          <span>📥</span>
+          <span>Inbox</span>
+        </div>
+      </div>
+
+      {/* Статистика в три колонки */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(3, 1fr)',
+        gap: '15px',
+        marginBottom: '30px',
+      }}>
+        <div style={{ 
+          fontSize: '14px', 
+          color: '#333',
+          textAlign: 'center',
+        }}>
+          <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '4px' }}>40</div>
+          <div style={{ fontSize: '12px', color: '#666' }}>уникальных кейсов</div>
+        </div>
+        <div style={{ 
+          fontSize: '14px', 
+          color: '#333',
+          textAlign: 'center',
+        }}>
+          <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '4px' }}>2578</div>
+          <div style={{ fontSize: '12px', color: '#666' }}>проектов</div>
+        </div>
+        <div style={{ 
+          fontSize: '14px', 
+          color: '#333',
+          textAlign: 'center',
+        }}>
+          <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '4px' }}>4</div>
+          <div style={{ fontSize: '12px', color: '#666' }}>города</div>
         </div>
       </div>
 
