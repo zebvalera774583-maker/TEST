@@ -20,13 +20,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Сначала пытаемся вставить с group_id, если ошибка - вставляем без него
+    let insertData: any = {
+      public_url,
+      sort_order: sort_order || 0,
+    };
+    
+    // Добавляем group_id только если он передан
+    if (group_id) {
+      insertData.group_id = group_id;
+    }
+
     const { data, error } = await supabaseAdmin
       .from('site_photos')
-      .insert({
-        public_url,
-        sort_order: sort_order || 0,
-        group_id: group_id || null,
-      })
+      .insert(insertData)
       .select()
       .single();
 
