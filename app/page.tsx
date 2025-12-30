@@ -620,7 +620,7 @@ export default function Home() {
       </div>
 
       {/* Сетка фотографий (3 колонки, как в Instagram) */}
-      {photoGroups.length > 0 && (
+      {photoGroups.length > 0 ? (
         <div style={{ marginTop: '40px' }}>
           <div style={{
             display: 'grid',
@@ -638,13 +638,44 @@ export default function Home() {
             ))}
           </div>
         </div>
-      )}
-
-      {photoGroups.length === 0 && !loading && (
+      ) : photos.length > 0 ? (
+        // Временный fallback: показываем фото без группировки, если группы не создались
+        <div style={{ marginTop: '40px' }}>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: '15px',
+          }}>
+            {photos.map((photo) => (
+              <div
+                key={photo.id}
+                onClick={() => setOpenFullscreen({ groupId: `single-${photo.id}`, photoIndex: 0 })}
+                style={{
+                  aspectRatio: '1',
+                  borderRadius: '12px',
+                  overflow: 'hidden',
+                  backgroundColor: '#f5f5f5',
+                  cursor: 'pointer',
+                }}
+              >
+                <img
+                  src={photo.public_url}
+                  alt="Photo"
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : !loading ? (
         <div style={{ marginTop: '40px', textAlign: 'center', color: '#666' }}>
           <p>Фотографии скоро появятся</p>
         </div>
-      )}
+      ) : null}
 
       {/* Модальное окно на весь экран */}
       {openFullscreen && (() => {
