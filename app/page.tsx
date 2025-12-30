@@ -29,10 +29,13 @@ export default function Home() {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   // Загружаем фото и увеличиваем счетчик просмотров
   useEffect(() => {
     loadPhotos();
+    loadAvatar();
     incrementViews();
     // Проверяем авторизацию админа
     const authStatus = localStorage.getItem('admin_authenticated');
@@ -113,6 +116,79 @@ export default function Home() {
       });
     } catch (error) {
       console.error('Ошибка обновления статистики:', error);
+    }
+  };
+
+  const loadAvatar = async () => {
+    try {
+      const response = await fetch('/api/admin/avatar');
+      if (!response.ok) throw new Error('Ошибка загрузки аватарки');
+      const data = await response.json();
+      setAvatarUrl(data.avatar_url);
+    } catch (error) {
+      console.error('Ошибка загрузки аватарки:', error);
+    }
+  };
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploading(true);
+      
+      // Сжимаем изображение
+      const options = {
+        maxSizeMB: 1,
+        maxWidthOrHeight: 400,
+        useWebWorker: true,
+      };
+      const compressedFile = await imageCompression(file, options);
+
+      // Генерируем уникальное имя файла
+      const fileExt = file.name.split('.').pop();
+      const fileName = `avatar-${Date.now()}.${fileExt}`;
+
+      // Загружаем в Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from('Test')
+        .upload(fileName, compressedFile, {
+          contentType: compressedFile.type,
+          upsert: false,
+        });
+
+      if (uploadError) {
+        throw new Error(uploadError.message);
+      }
+
+      // Получаем публичный URL
+      const { data: urlData } = supabase.storage
+        .from('Test')
+        .getPublicUrl(fileName);
+
+      // Сохраняем URL в БД
+      const response = await fetch('/api/admin/avatar', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ avatar_url: urlData.publicUrl }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Ошибка сохранения аватарки');
+      }
+
+      // Обновляем состояние
+      setAvatarUrl(urlData.publicUrl);
+      alert('Аватарка успешно загружена');
+    } catch (error: any) {
+      console.error('Ошибка:', error);
+      alert(`Ошибка загрузки аватарки: ${error.message}`);
+    } finally {
+      setUploading(false);
+      if (avatarInputRef.current) {
+        avatarInputRef.current.value = '';
+      }
     }
   };
 
@@ -367,10 +443,14 @@ export default function Home() {
             alignItems: 'center',
             justifyContent: 'center',
             overflow: 'hidden',
-          }}>
-            {photos[0]?.public_url ? (
+            cursor: isAdmin ? 'pointer' : 'default',
+          }}
+          onClick={() => isAdmin && avatarInputRef.current?.click()}
+          title={isAdmin ? 'Нажмите, чтобы загрузить аватарку' : ''}
+          >
+            {avatarUrl ? (
               <img
-                src={photos[0].public_url}
+                src={avatarUrl}
                 alt="Профильное фото"
                 style={{
                   width: '100%',
@@ -381,7 +461,36 @@ export default function Home() {
             ) : (
               <div style={{ fontSize: '24px', color: '#999' }}>👤</div>
             )}
+            {isAdmin && (
+              <div style={{
+                position: 'absolute',
+                bottom: 0,
+                right: 0,
+                width: '20px',
+                height: '20px',
+                borderRadius: '50%',
+                backgroundColor: '#007bff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '2px solid white',
+                cursor: 'pointer',
+              }}
+              title="Загрузить аватарку"
+              >
+                <span style={{ fontSize: '12px', color: 'white' }}>📷</span>
+              </div>
+            )}
           </div>
+          {isAdmin && (
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={handleAvatarUpload}
+            />
+          )}
         </div>
 
         {/* Статистика вровень с верхом аватара */}
