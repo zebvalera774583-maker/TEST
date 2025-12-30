@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
+import { supabaseAdmin, supabase } from '@/lib/supabase';
 
 export async function PUT(request: NextRequest) {
   try {
@@ -48,15 +48,8 @@ export async function PUT(request: NextRequest) {
 
 export async function GET() {
   try {
-    if (!supabaseAdmin) {
-      return NextResponse.json(
-        { error: 'Supabase не инициализирован' },
-        { status: 500 }
-      );
-    }
-
-    // Получаем аватарку из site_stats
-    const { data, error } = await supabaseAdmin
+    // Используем обычный supabase клиент для публичного доступа (RLS разрешает чтение)
+    const { data, error } = await supabase
       .from('site_stats')
       .select('avatar_url')
       .eq('id', 1)
@@ -64,6 +57,10 @@ export async function GET() {
 
     if (error) {
       console.error('Ошибка получения аватарки:', error);
+      // Если колонка не существует, возвращаем null без ошибки
+      if (error.message?.includes('column') || error.code === 'PGRST116') {
+        return NextResponse.json({ success: true, avatar_url: null });
+      }
       return NextResponse.json(
         { error: 'Ошибка получения аватарки', details: error.message },
         { status: 500 }
