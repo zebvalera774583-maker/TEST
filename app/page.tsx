@@ -218,20 +218,28 @@ export default function Home() {
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
           console.error('Ошибка сохранения в БД:', errorData);
+          alert(`Ошибка сохранения фото ${i + 1}: ${errorData.error || 'Неизвестная ошибка'}`);
           continue;
         }
 
         const result = await response.json();
-        console.log('Фото сохранено в БД:', result);
+        console.log(`Фото ${i + 1} сохранено в БД:`, result);
 
         setUploadProgress(((i + 1) / imageFiles.length) * 100);
       }
 
       // Перезагружаем фото после загрузки
       console.log('Перезагружаем фото...');
+      await new Promise(resolve => setTimeout(resolve, 500)); // Небольшая задержка для БД
       await loadPhotos();
-      console.log('Фото перезагружены');
-      alert(`Успешно загружено ${imageFiles.length} фотографий`);
+      console.log('Фото перезагружены, групп:', photoGroups.length);
+      
+      // Проверяем, что фото загрузились
+      if (photos.length === 0 && photoGroups.length === 0) {
+        alert('Фото загружены, но не отображаются. Проверьте консоль браузера (F12)');
+      } else {
+        alert(`Успешно загружено ${imageFiles.length} фотографий`);
+      }
     } catch (error: any) {
       console.error('Ошибка:', error);
       alert(`Ошибка: ${error.message}`);
