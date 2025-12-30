@@ -57,6 +57,41 @@ export async function POST(request: NextRequest) {
       .from('Test')
       .getPublicUrl(fileName);
 
+    // Проверяем, существует ли запись с id=1
+    const { data: existingStats, error: checkError } = await supabaseAdmin
+      .from('site_stats')
+      .select('id')
+      .eq('id', 1)
+      .single();
+
+    // Если записи нет, создаем её
+    if (checkError || !existingStats) {
+      const { data: newStats, error: insertError } = await supabaseAdmin
+        .from('site_stats')
+        .insert({ id: 1, views_total: 0, avatar_url: urlData.publicUrl })
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error('Ошибка создания записи site_stats:', insertError);
+        await supabaseAdmin.storage.from('Test').remove([fileName]);
+        return NextResponse.json(
+          { 
+            error: 'Ошибка сохранения аватарки', 
+            details: insertError.message,
+            hint: 'Убедитесь, что таблица site_stats создана и колонка avatar_url добавлена'
+          },
+          { status: 500 }
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        avatar_url: urlData.publicUrl,
+        data: newStats,
+      });
+    }
+
     // Сохраняем URL в БД
     const { data: statsData, error: dbError } = await supabaseAdmin
       .from('site_stats')
@@ -67,10 +102,18 @@ export async function POST(request: NextRequest) {
 
     if (dbError) {
       console.error('Ошибка сохранения аватарки в БД:', dbError);
+      console.error('Детали ошибки:', JSON.stringify(dbError, null, 2));
       // Пытаемся удалить загруженный файл
       await supabaseAdmin.storage.from('Test').remove([fileName]);
       return NextResponse.json(
-        { error: 'Ошибка сохранения аватарки', details: dbError.message },
+        { 
+          error: 'Ошибка сохранения аватарки', 
+          details: dbError.message,
+          code: dbError.code,
+          hint: dbError.message?.includes('column') 
+            ? 'Колонка avatar_url не существует. Выполните SQL из add_avatar_url_column.sql'
+            : 'Проверьте, что таблица site_stats создана и RLS настроен правильно'
+        },
         { status: 500 }
       );
     }
