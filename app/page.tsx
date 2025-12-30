@@ -47,7 +47,7 @@ export default function Home() {
       const { data, error } = await supabase
         .from('site_photos')
         .select('*')
-        .order('sort_order', { ascending: true });
+        .order('created_at', { ascending: false }); // Новые сверху
 
       if (error) {
         console.error('Ошибка загрузки фото:', error);
