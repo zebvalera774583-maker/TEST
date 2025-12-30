@@ -3,8 +3,20 @@ CREATE TABLE IF NOT EXISTS site_photos (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   public_url TEXT NOT NULL,
   sort_order INTEGER NOT NULL DEFAULT 0,
+  group_id TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Добавляем колонку group_id, если её нет (для существующих таблиц)
+DO $$ 
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'site_photos' AND column_name = 'group_id'
+  ) THEN
+    ALTER TABLE site_photos ADD COLUMN group_id TEXT;
+  END IF;
+END $$;
 
 -- Индекс для сортировки
 CREATE INDEX IF NOT EXISTS idx_site_photos_sort_order ON site_photos(sort_order);

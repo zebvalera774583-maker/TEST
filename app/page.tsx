@@ -9,13 +9,20 @@ interface SitePhoto {
   public_url: string;
   sort_order: number;
   created_at: string;
+  group_id?: string; // ID группы загрузки
+}
+
+interface PhotoGroup {
+  groupId: string;
+  photos: SitePhoto[];
 }
 
 export default function Home() {
   const [photos, setPhotos] = useState<SitePhoto[]>([]);
+  const [photoGroups, setPhotoGroups] = useState<PhotoGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [openFullscreen, setOpenFullscreen] = useState(false);
+  const [openFullscreen, setOpenFullscreen] = useState<{ groupId: string; photoIndex: number } | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [adminPassword, setAdminPassword] = useState('');
@@ -52,6 +59,23 @@ export default function Home() {
 
       console.log('Загружено фото:', data?.length || 0);
       setPhotos(data || []);
+      
+      // Группируем фото по group_id или created_at (для старых фото без group_id)
+      const grouped: { [key: string]: SitePhoto[] } = {};
+      (data || []).forEach(photo => {
+        const groupId = photo.group_id || `group-${new Date(photo.created_at).getTime()}`;
+        if (!grouped[groupId]) {
+          grouped[groupId] = [];
+        }
+        grouped[groupId].push(photo);
+      });
+      
+      const groups: PhotoGroup[] = Object.keys(grouped).map(groupId => ({
+        groupId,
+        photos: grouped[groupId].sort((a, b) => a.sort_order - b.sort_order),
+      }));
+      
+      setPhotoGroups(groups);
     } catch (error: any) {
       console.error('Ошибка:', error);
       alert(`Ошибка: ${error.message}`);
@@ -139,6 +163,9 @@ export default function Home() {
         nextSortOrder = existingPhotos[0].sort_order + 1;
       }
 
+      // Создаем уникальный group_id для этой загрузки
+      const groupId = `group-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+
       for (let i = 0; i < imageFiles.length; i++) {
         const file = imageFiles[i];
         const compressedFile = await compressImage(file);
@@ -169,6 +196,7 @@ export default function Home() {
           body: JSON.stringify({
             public_url: urlData.publicUrl,
             sort_order: nextSortOrder + i,
+            group_id: groupId, // Добавляем group_id
           }),
         });
 
@@ -392,29 +420,14 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Кнопка входа/выхода для админа */}
-      <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'flex-end' }}>
-        {!isAdmin ? (
-          <button
-            onClick={() => setShowLoginModal(true)}
-            style={{
-              padding: '8px 16px',
-              fontSize: '14px',
-              border: '1px solid #0070f3',
-              borderRadius: '6px',
-              backgroundColor: '#0070f3',
-              color: 'white',
-              cursor: 'pointer',
-            }}
-          >
-            Войти как админ
-          </button>
-        ) : (
+      {/* Кнопка входа/выхода для админа (скрыта для обычных посетителей, маленькая для админа) */}
+      {isAdmin && (
+        <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'flex-end' }}>
           <button
             onClick={handleLogout}
             style={{
-              padding: '8px 16px',
-              fontSize: '14px',
+              padding: '6px 12px',
+              fontSize: '12px',
               border: '1px solid #dc3545',
               borderRadius: '6px',
               backgroundColor: '#dc3545',
@@ -424,13 +437,42 @@ export default function Home() {
           >
             Выйти
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* Кнопка загрузки фото (только для админа) */}
+      {/* Скрытая кнопка входа для неавторизованных (только через модальное окно) */}
+      {!isAdmin && (
+        <div style={{ 
+          position: 'fixed', 
+          bottom: '20px', 
+          right: '20px', 
+          zIndex: 999,
+          opacity: 0.3,
+          transition: 'opacity 0.3s',
+        }}
+        onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+        onMouseLeave={(e) => e.currentTarget.style.opacity = '0.3'}
+        >
+          <button
+            onClick={() => setShowLoginModal(true)}
+            style={{
+              padding: '6px 12px',
+              fontSize: '11px',
+              border: '1px solid #999',
+              borderRadius: '6px',
+              backgroundColor: '#999',
+              color: 'white',
+              cursor: 'pointer',
+            }}
+          >
+            Админ
+          </button>
+        </div>
+      )}
+
+      {/* Кнопка загрузки фото (только для админа) - синяя кнопка как раньше */}
       {isAdmin && (
-        <div style={{ marginBottom: '20px', padding: '15px', border: '1px solid #ddd', borderRadius: '8px', backgroundColor: '#f9f9f9' }}>
-          <h3 style={{ marginBottom: '10px', fontSize: '16px' }}>Загрузить фото</h3>
+        <div style={{ marginBottom: '20px' }}>
           <input
             ref={fileInputRef}
             type="file"
@@ -438,25 +480,53 @@ export default function Home() {
             multiple
             onChange={handleUpload}
             disabled={uploading}
-            style={{ marginBottom: '10px' }}
+            style={{ display: 'none' }}
           />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            style={{
+              width: '100%',
+              padding: '14px 20px',
+              fontSize: '16px',
+              fontWeight: '500',
+              backgroundColor: uploading ? '#999' : '#0070f3',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: uploading ? 'wait' : 'pointer',
+              opacity: uploading ? 0.6 : 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              transition: 'background-color 0.2s',
+            }}
+            onMouseEnter={(e) => {
+              if (!uploading) e.currentTarget.style.backgroundColor = '#0051cc';
+            }}
+            onMouseLeave={(e) => {
+              if (!uploading) e.currentTarget.style.backgroundColor = '#0070f3';
+            }}
+          >
+            <span>📷</span>
+            {uploading ? `Загрузка... ${Math.round(uploadProgress)}%` : 'Загрузить фото'}
+          </button>
           {uploading && (
-            <div>
+            <div style={{
+              width: '100%',
+              height: '8px',
+              backgroundColor: '#e0e0e0',
+              borderRadius: '4px',
+              marginTop: '10px',
+              overflow: 'hidden',
+            }}>
               <div style={{
-                width: '100%',
-                height: '8px',
-                backgroundColor: '#e0e0e0',
-                borderRadius: '4px',
-                marginBottom: '5px',
-              }}>
-                <div style={{
-                  width: `${uploadProgress}%`,
-                  height: '100%',
-                  backgroundColor: '#0070f3',
-                  transition: 'width 0.3s ease',
-                }} />
-              </div>
-              <p style={{ fontSize: '12px', color: '#666' }}>Загрузка... {Math.round(uploadProgress)}%</p>
+                width: `${uploadProgress}%`,
+                height: '100%',
+                backgroundColor: '#0070f3',
+                transition: 'width 0.3s ease',
+              }} />
             </div>
           )}
         </div>
@@ -533,266 +603,97 @@ export default function Home() {
         </button>
       </div>
 
-      {/* Слайдер фотографий */}
-      <div style={{ marginTop: '40px' }}>
-        <div style={{ position: 'relative', width: '100%', aspectRatio: '1', borderRadius: '12px', overflow: 'hidden', backgroundColor: '#f5f5f5' }}>
-          {/* Контейнер изображений */}
+      {/* Сетка фотографий (3 колонки, как в Instagram) */}
+      {photoGroups.length > 0 && (
+        <div style={{ marginTop: '40px' }}>
           <div style={{
-            display: 'flex',
-            transform: `translateX(-${currentIndex * 100}%)`,
-            transition: 'transform 0.3s ease',
-            height: '100%',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: '15px',
           }}>
-            {photos.map((photo, index) => (
-              <div
-                key={photo.id}
-                onClick={() => setOpenFullscreen(true)}
-                style={{
-                  minWidth: '100%',
-                  width: '100%',
-                  flexShrink: 0,
-                  height: '100%',
-                  cursor: 'pointer',
-                }}
-              >
-                <img
-                  src={photo.public_url}
-                  alt={`Photo ${index + 1}`}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                    display: 'block',
-                    pointerEvents: 'none',
-                  }}
-                />
-              </div>
+            {photoGroups.map((group) => (
+              <PhotoGridItem
+                key={group.groupId}
+                group={group}
+                isAdmin={isAdmin}
+                onOpenFullscreen={(photoIndex) => setOpenFullscreen({ groupId: group.groupId, photoIndex })}
+                onDelete={isAdmin ? (photoId) => handleDelete(photoId) : undefined}
+              />
             ))}
           </div>
-
-          {/* Стрелка влево */}
-          {photos.length > 1 && currentIndex > 0 && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setCurrentIndex(currentIndex - 1);
-              }}
-              style={{
-                position: 'absolute',
-                left: '20px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                width: '40px',
-                height: '40px',
-                borderRadius: '50%',
-                backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                color: 'white',
-                border: 'none',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '24px',
-                zIndex: 10,
-              }}
-            >
-              ‹
-            </button>
-          )}
-
-          {/* Стрелка вправо */}
-          {photos.length > 1 && currentIndex < photos.length - 1 && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setCurrentIndex(currentIndex + 1);
-              }}
-              style={{
-                position: 'absolute',
-                right: '20px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                width: '40px',
-                height: '40px',
-                borderRadius: '50%',
-                backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                color: 'white',
-                border: 'none',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '24px',
-                zIndex: 10,
-              }}
-            >
-              ›
-            </button>
-          )}
-
-          {/* Точки-индикаторы */}
-          {photos.length > 1 && (
-            <div style={{
-              position: 'absolute',
-              bottom: '20px',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              display: 'flex',
-              gap: '8px',
-              zIndex: 10,
-            }}>
-              {photos.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setCurrentIndex(index);
-                  }}
-                  style={{
-                    width: '10px',
-                    height: '10px',
-                    borderRadius: '50%',
-                    border: 'none',
-                    backgroundColor: index === currentIndex ? '#fff' : 'rgba(255, 255, 255, 0.5)',
-                    cursor: 'pointer',
-                    transition: 'background-color 0.2s',
-                    padding: 0,
-                  }}
-                />
-              ))}
-            </div>
-          )}
         </div>
+      )}
 
-        {/* Счетчик */}
-        {photos.length > 0 && (
-          <div style={{
-            textAlign: 'center',
-            marginTop: '15px',
-            color: '#666',
-            fontSize: '14px',
-          }}>
-            {currentIndex + 1} / {photos.length}
-          </div>
-        )}
-
-        {/* Кнопки управления фото (только для админа) */}
-        {isAdmin && photos.length > 0 && (
-          <div style={{
-            marginTop: '15px',
-            display: 'flex',
-            gap: '8px',
-            justifyContent: 'center',
-            flexWrap: 'wrap',
-          }}>
-            <button
-              onClick={() => handleMove(photos[currentIndex].id, 'up')}
-              disabled={currentIndex === 0}
-              style={{
-                padding: '6px 12px',
-                fontSize: '12px',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                backgroundColor: currentIndex === 0 ? '#f5f5f5' : 'white',
-                color: currentIndex === 0 ? '#999' : '#333',
-                cursor: currentIndex === 0 ? 'not-allowed' : 'pointer',
-              }}
-            >
-              ↑ Вверх
-            </button>
-            <button
-              onClick={() => handleMove(photos[currentIndex].id, 'down')}
-              disabled={currentIndex === photos.length - 1}
-              style={{
-                padding: '6px 12px',
-                fontSize: '12px',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                backgroundColor: currentIndex === photos.length - 1 ? '#f5f5f5' : 'white',
-                color: currentIndex === photos.length - 1 ? '#999' : '#333',
-                cursor: currentIndex === photos.length - 1 ? 'not-allowed' : 'pointer',
-              }}
-            >
-              ↓ Вниз
-            </button>
-            <button
-              onClick={() => handleDelete(photos[currentIndex].id)}
-              style={{
-                padding: '6px 12px',
-                fontSize: '12px',
-                border: '1px solid #dc3545',
-                borderRadius: '4px',
-                backgroundColor: '#dc3545',
-                color: 'white',
-                cursor: 'pointer',
-              }}
-            >
-              Удалить
-            </button>
-          </div>
-        )}
-      </div>
+      {photoGroups.length === 0 && !loading && (
+        <div style={{ marginTop: '40px', textAlign: 'center', color: '#666' }}>
+          <p>Фотографии скоро появятся</p>
+        </div>
+      )}
 
       {/* Модальное окно на весь экран */}
-      {openFullscreen && (
-        <div
-          onClick={() => setOpenFullscreen(false)}
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.95)',
-            zIndex: 1000,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Escape') {
-              setOpenFullscreen(false);
-            }
-          }}
-          tabIndex={0}
-        >
-          {/* Кнопка закрытия */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setOpenFullscreen(false);
-            }}
+      {openFullscreen && (() => {
+        const group = photoGroups.find(g => g.groupId === openFullscreen.groupId);
+        if (!group) return null;
+        return (
+          <div
+            onClick={() => setOpenFullscreen(null)}
             style={{
-              position: 'absolute',
-              top: '20px',
-              right: '20px',
-              width: '40px',
-              height: '40px',
-              borderRadius: '50%',
-              backgroundColor: 'rgba(255, 255, 255, 0.2)',
-              color: 'white',
-              border: 'none',
-              cursor: 'pointer',
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.95)',
+              zIndex: 1000,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '24px',
-              zIndex: 1001,
+              cursor: 'pointer',
             }}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                setOpenFullscreen(null);
+              }
+            }}
+            tabIndex={0}
           >
-            ×
-          </button>
+            {/* Кнопка закрытия */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setOpenFullscreen(null);
+              }}
+              style={{
+                position: 'absolute',
+                top: '20px',
+                right: '20px',
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                color: 'white',
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '24px',
+                zIndex: 1001,
+              }}
+            >
+              ×
+            </button>
 
-          {/* Карусель в полном размере */}
-          <FullscreenCarousel 
-            photos={photos}
-            currentIndex={currentIndex}
-            onIndexChange={setCurrentIndex}
-            onClose={() => setOpenFullscreen(false)}
-          />
-        </div>
-      )}
+            {/* Карусель в полном размере */}
+            <FullscreenCarousel 
+              photos={group.photos}
+              currentIndex={openFullscreen.photoIndex}
+              onIndexChange={(index) => setOpenFullscreen({ ...openFullscreen, photoIndex: index })}
+              onClose={() => setOpenFullscreen(null)}
+            />
+          </div>
+        );
+      })()}
 
       {/* Модальное окно входа */}
       {showLoginModal && (
@@ -882,6 +783,167 @@ export default function Home() {
     </main>
   );
 }
+
+// Компонент квадрата в сетке с каруселью
+const PhotoGridItem = ({ 
+  group, 
+  isAdmin, 
+  onOpenFullscreen,
+  onDelete 
+}: { 
+  group: PhotoGroup; 
+  isAdmin: boolean;
+  onOpenFullscreen: (photoIndex: number) => void;
+  onDelete?: (photoId: string) => void;
+}) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  return (
+    <div style={{ position: 'relative', aspectRatio: '1', borderRadius: '12px', overflow: 'hidden', backgroundColor: '#f5f5f5', cursor: 'pointer' }}>
+      {/* Карусель внутри квадрата */}
+      <div 
+        onClick={() => onOpenFullscreen(currentIndex)}
+        style={{
+          display: 'flex',
+          transform: `translateX(-${currentIndex * 100}%)`,
+          transition: 'transform 0.3s ease',
+          height: '100%',
+        }}
+      >
+        {group.photos.map((photo, index) => (
+          <div
+            key={photo.id}
+            style={{
+              minWidth: '100%',
+              width: '100%',
+              flexShrink: 0,
+              height: '100%',
+            }}
+          >
+            <img
+              src={photo.public_url}
+              alt={`Photo ${index + 1}`}
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                display: 'block',
+                pointerEvents: 'none',
+              }}
+            />
+          </div>
+        ))}
+      </div>
+
+      {/* Стрелки навигации (только если больше 1 фото) */}
+      {group.photos.length > 1 && currentIndex > 0 && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setCurrentIndex(currentIndex - 1);
+          }}
+          style={{
+            position: 'absolute',
+            left: '5px',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            width: '25px',
+            height: '25px',
+            borderRadius: '50%',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            color: 'white',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '14px',
+            zIndex: 10,
+          }}
+        >
+          ‹
+        </button>
+      )}
+
+      {group.photos.length > 1 && currentIndex < group.photos.length - 1 && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setCurrentIndex(currentIndex + 1);
+          }}
+          style={{
+            position: 'absolute',
+            right: '5px',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            width: '25px',
+            height: '25px',
+            borderRadius: '50%',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            color: 'white',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '14px',
+            zIndex: 10,
+          }}
+        >
+          ›
+        </button>
+      )}
+
+      {/* Индикатор множественных фото */}
+      {group.photos.length > 1 && (
+        <div style={{
+          position: 'absolute',
+          top: '8px',
+          right: '8px',
+          backgroundColor: 'rgba(0, 0, 0, 0.6)',
+          color: 'white',
+          padding: '4px 8px',
+          borderRadius: '12px',
+          fontSize: '11px',
+          zIndex: 10,
+        }}>
+          {currentIndex + 1}/{group.photos.length}
+        </div>
+      )}
+
+      {/* Кнопка удаления для админа */}
+      {isAdmin && onDelete && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            if (confirm('Удалить эту группу фото?')) {
+              group.photos.forEach(photo => onDelete(photo.id));
+            }
+          }}
+          style={{
+            position: 'absolute',
+            top: '8px',
+            left: '8px',
+            width: '24px',
+            height: '24px',
+            borderRadius: '50%',
+            backgroundColor: 'rgba(220, 53, 69, 0.8)',
+            color: 'white',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '14px',
+            zIndex: 10,
+          }}
+        >
+          ×
+        </button>
+      )}
+    </div>
+  );
+};
 
 // Компонент карусели для полноэкранного режима
 const FullscreenCarousel = ({ 

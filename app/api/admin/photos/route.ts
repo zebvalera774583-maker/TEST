@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { public_url, sort_order } = body;
+    const { public_url, sort_order, group_id } = body;
 
     if (!public_url) {
       return NextResponse.json(
@@ -25,6 +25,7 @@ export async function POST(request: NextRequest) {
       .insert({
         public_url,
         sort_order: sort_order || 0,
+        group_id: group_id || null,
       })
       .select()
       .single();
