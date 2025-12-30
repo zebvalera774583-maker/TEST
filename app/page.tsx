@@ -145,41 +145,24 @@ export default function Home() {
       };
       const compressedFile = await imageCompression(file, options);
 
-      // Генерируем уникальное имя файла
-      const fileExt = file.name.split('.').pop();
-      const fileName = `avatar-${Date.now()}.${fileExt}`;
+      // Загружаем через API endpoint
+      const formData = new FormData();
+      formData.append('file', compressedFile, file.name);
 
-      // Загружаем в Supabase Storage
-      const { error: uploadError } = await supabase.storage
-        .from('Test')
-        .upload(fileName, compressedFile, {
-          contentType: compressedFile.type,
-          upsert: false,
-        });
-
-      if (uploadError) {
-        throw new Error(uploadError.message);
-      }
-
-      // Получаем публичный URL
-      const { data: urlData } = supabase.storage
-        .from('Test')
-        .getPublicUrl(fileName);
-
-      // Сохраняем URL в БД
-      const response = await fetch('/api/admin/avatar', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ avatar_url: urlData.publicUrl }),
+      const response = await fetch('/api/admin/avatar/upload', {
+        method: 'POST',
+        body: formData,
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Ошибка сохранения аватарки');
+        throw new Error(errorData.error || 'Ошибка загрузки аватарки');
       }
 
+      const data = await response.json();
+      
       // Обновляем состояние
-      setAvatarUrl(urlData.publicUrl);
+      setAvatarUrl(data.avatar_url);
       alert('Аватарка успешно загружена');
     } catch (error: any) {
       console.error('Ошибка:', error);
@@ -1109,7 +1092,7 @@ const PhotoGridItem = ({
             width: '24px',
             height: '24px',
             backgroundColor: 'transparent',
-            color: '#dc3545',
+            color: '#000',
             border: 'none',
             cursor: 'pointer',
             display: 'flex',
