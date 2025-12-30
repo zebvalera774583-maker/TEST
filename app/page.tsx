@@ -545,10 +545,12 @@ export default function Home() {
         display: 'flex',
         gap: '12px',
         marginBottom: '20px',
-        flexWrap: 'wrap',
-        alignItems: 'center',
+        flexWrap: 'nowrap',
+        alignItems: 'stretch',
+        width: '100%',
       }}>
         <button style={{
+          flex: '1',
           padding: '10px 20px',
           fontSize: '14px',
           border: '1px solid #ddd',
@@ -557,6 +559,10 @@ export default function Home() {
           color: '#333',
           cursor: 'pointer',
           transition: 'all 0.2s',
+          minHeight: '40px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
         }}
         onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f5f5f5'}
         onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
@@ -564,6 +570,7 @@ export default function Home() {
           Редактировать
         </button>
         <button style={{
+          flex: '1',
           padding: '10px 20px',
           fontSize: '14px',
           border: '1px solid #ddd',
@@ -572,6 +579,10 @@ export default function Home() {
           color: '#333',
           cursor: 'pointer',
           transition: 'all 0.2s',
+          minHeight: '40px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
         }}
         onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f5f5f5'}
         onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
@@ -579,6 +590,7 @@ export default function Home() {
           Поделиться
         </button>
         <button style={{
+          flex: '1',
           padding: '10px 20px',
           fontSize: '14px',
           border: '1px solid #ddd',
@@ -587,6 +599,10 @@ export default function Home() {
           color: '#333',
           cursor: 'pointer',
           transition: 'all 0.2s',
+          minHeight: '40px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
         }}
         onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f5f5f5'}
         onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
