@@ -480,7 +480,7 @@ export default function Home() {
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(3, auto)',
-          gap: '25px',
+          gap: '8px',
           flex: 1,
           alignSelf: 'flex-start',
           justifyContent: 'flex-end',
