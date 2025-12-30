@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
+import imageCompression from 'browser-image-compression';
 
 interface SitePhoto {
   id: string;
@@ -15,11 +16,22 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [openFullscreen, setOpenFullscreen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [adminPassword, setAdminPassword] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Загружаем фото и увеличиваем счетчик просмотров
   useEffect(() => {
     loadPhotos();
     incrementViews();
+    // Проверяем авторизацию админа
+    const authStatus = localStorage.getItem('admin_authenticated');
+    if (authStatus === 'true') {
+      setIsAdmin(true);
+    }
   }, []);
 
   const loadPhotos = async () => {
@@ -55,6 +67,170 @@ export default function Home() {
       });
     } catch (error) {
       console.error('Ошибка обновления статистики:', error);
+    }
+  };
+
+  // Админ функции
+  const handleAdminLogin = async () => {
+    try {
+      const response = await fetch('/api/admin/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: adminPassword }),
+      });
+
+      const data = await response.json();
+      if (response.ok && data.success) {
+        localStorage.setItem('admin_authenticated', 'true');
+        setIsAdmin(true);
+        setShowLoginModal(false);
+        setAdminPassword('');
+      } else {
+        alert(data.error || 'Неверный пароль');
+      }
+    } catch (error) {
+      console.error('Ошибка входа:', error);
+      alert('Ошибка при входе');
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('admin_authenticated');
+    setIsAdmin(false);
+  };
+
+  const compressImage = async (file: File): Promise<File> => {
+    const options = {
+      maxSizeMB: 2,
+      maxWidthOrHeight: 1920,
+      useWebWorker: true,
+    };
+    try {
+      return await imageCompression(file, options);
+    } catch (error) {
+      console.error('Ошибка сжатия:', error);
+      return file;
+    }
+  };
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploading(true);
+    setUploadProgress(0);
+    const imageFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
+
+    if (imageFiles.length === 0) {
+      alert('Пожалуйста, выберите изображения');
+      setUploading(false);
+      return;
+    }
+
+    try {
+      const { data: existingPhotos } = await supabase
+        .from('site_photos')
+        .select('sort_order')
+        .order('sort_order', { ascending: false })
+        .limit(1);
+
+      let nextSortOrder = 0;
+      if (existingPhotos && existingPhotos.length > 0) {
+        nextSortOrder = existingPhotos[0].sort_order + 1;
+      }
+
+      for (let i = 0; i < imageFiles.length; i++) {
+        const file = imageFiles[i];
+        const compressedFile = await compressImage(file);
+        setUploadProgress(((i + 0.5) / imageFiles.length) * 100);
+
+        const fileExt = file.name.split('.').pop();
+        const fileName = `site-photo-${Date.now()}-${i}.${fileExt}`;
+
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('Test')
+          .upload(fileName, compressedFile, {
+            contentType: compressedFile.type,
+            upsert: false,
+          });
+
+        if (uploadError) {
+          console.error('Ошибка загрузки:', uploadError);
+          continue;
+        }
+
+        const { data: urlData } = supabase.storage
+          .from('Test')
+          .getPublicUrl(fileName);
+
+        const response = await fetch('/api/admin/photos', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            public_url: urlData.publicUrl,
+            sort_order: nextSortOrder + i,
+          }),
+        });
+
+        setUploadProgress(((i + 1) / imageFiles.length) * 100);
+      }
+
+      await loadPhotos();
+      alert(`Успешно загружено ${imageFiles.length} фотографий`);
+    } catch (error: any) {
+      console.error('Ошибка:', error);
+      alert(`Ошибка: ${error.message}`);
+    } finally {
+      setUploading(false);
+      setUploadProgress(0);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Удалить это фото?')) return;
+    try {
+      const response = await fetch('/api/admin/photos', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      if (!response.ok) throw new Error('Ошибка удаления');
+      await loadPhotos();
+    } catch (error) {
+      console.error('Ошибка:', error);
+      alert('Ошибка удаления фото');
+    }
+  };
+
+  const handleMove = async (id: string, direction: 'up' | 'down') => {
+    try {
+      const photoIndex = photos.findIndex(p => p.id === id);
+      if (photoIndex === -1) return;
+      const newIndex = direction === 'up' ? photoIndex - 1 : photoIndex + 1;
+      if (newIndex < 0 || newIndex >= photos.length) return;
+
+      const currentPhoto = photos[photoIndex];
+      const targetPhoto = photos[newIndex];
+
+      const response = await fetch('/api/admin/photos/reorder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id1: currentPhoto.id,
+          sort_order1: targetPhoto.sort_order,
+          id2: targetPhoto.id,
+          sort_order2: currentPhoto.sort_order,
+        }),
+      });
+
+      if (!response.ok) throw new Error('Ошибка изменения порядка');
+      await loadPhotos();
+    } catch (error) {
+      console.error('Ошибка:', error);
+      alert('Ошибка изменения порядка');
     }
   };
 
@@ -215,6 +391,76 @@ export default function Home() {
           Москва - Питер - Сочи - Краснодар
         </div>
       </div>
+
+      {/* Кнопка входа/выхода для админа */}
+      <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'flex-end' }}>
+        {!isAdmin ? (
+          <button
+            onClick={() => setShowLoginModal(true)}
+            style={{
+              padding: '8px 16px',
+              fontSize: '14px',
+              border: '1px solid #0070f3',
+              borderRadius: '6px',
+              backgroundColor: '#0070f3',
+              color: 'white',
+              cursor: 'pointer',
+            }}
+          >
+            Войти как админ
+          </button>
+        ) : (
+          <button
+            onClick={handleLogout}
+            style={{
+              padding: '8px 16px',
+              fontSize: '14px',
+              border: '1px solid #dc3545',
+              borderRadius: '6px',
+              backgroundColor: '#dc3545',
+              color: 'white',
+              cursor: 'pointer',
+            }}
+          >
+            Выйти
+          </button>
+        )}
+      </div>
+
+      {/* Кнопка загрузки фото (только для админа) */}
+      {isAdmin && (
+        <div style={{ marginBottom: '20px', padding: '15px', border: '1px solid #ddd', borderRadius: '8px', backgroundColor: '#f9f9f9' }}>
+          <h3 style={{ marginBottom: '10px', fontSize: '16px' }}>Загрузить фото</h3>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={handleUpload}
+            disabled={uploading}
+            style={{ marginBottom: '10px' }}
+          />
+          {uploading && (
+            <div>
+              <div style={{
+                width: '100%',
+                height: '8px',
+                backgroundColor: '#e0e0e0',
+                borderRadius: '4px',
+                marginBottom: '5px',
+              }}>
+                <div style={{
+                  width: `${uploadProgress}%`,
+                  height: '100%',
+                  backgroundColor: '#0070f3',
+                  transition: 'width 0.3s ease',
+                }} />
+              </div>
+              <p style={{ fontSize: '12px', color: '#666' }}>Загрузка... {Math.round(uploadProgress)}%</p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Кнопки действий вровень между собой */}
       <div style={{
@@ -429,6 +675,62 @@ export default function Home() {
             {currentIndex + 1} / {photos.length}
           </div>
         )}
+
+        {/* Кнопки управления фото (только для админа) */}
+        {isAdmin && photos.length > 0 && (
+          <div style={{
+            marginTop: '15px',
+            display: 'flex',
+            gap: '8px',
+            justifyContent: 'center',
+            flexWrap: 'wrap',
+          }}>
+            <button
+              onClick={() => handleMove(photos[currentIndex].id, 'up')}
+              disabled={currentIndex === 0}
+              style={{
+                padding: '6px 12px',
+                fontSize: '12px',
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+                backgroundColor: currentIndex === 0 ? '#f5f5f5' : 'white',
+                color: currentIndex === 0 ? '#999' : '#333',
+                cursor: currentIndex === 0 ? 'not-allowed' : 'pointer',
+              }}
+            >
+              ↑ Вверх
+            </button>
+            <button
+              onClick={() => handleMove(photos[currentIndex].id, 'down')}
+              disabled={currentIndex === photos.length - 1}
+              style={{
+                padding: '6px 12px',
+                fontSize: '12px',
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+                backgroundColor: currentIndex === photos.length - 1 ? '#f5f5f5' : 'white',
+                color: currentIndex === photos.length - 1 ? '#999' : '#333',
+                cursor: currentIndex === photos.length - 1 ? 'not-allowed' : 'pointer',
+              }}
+            >
+              ↓ Вниз
+            </button>
+            <button
+              onClick={() => handleDelete(photos[currentIndex].id)}
+              style={{
+                padding: '6px 12px',
+                fontSize: '12px',
+                border: '1px solid #dc3545',
+                borderRadius: '4px',
+                backgroundColor: '#dc3545',
+                color: 'white',
+                cursor: 'pointer',
+              }}
+            >
+              Удалить
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Модальное окно на весь экран */}
@@ -489,6 +791,92 @@ export default function Home() {
             onIndexChange={setCurrentIndex}
             onClose={() => setOpenFullscreen(false)}
           />
+        </div>
+      )}
+
+      {/* Модальное окно входа */}
+      {showLoginModal && (
+        <div
+          onClick={() => setShowLoginModal(false)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: 'white',
+              padding: '30px',
+              borderRadius: '8px',
+              maxWidth: '400px',
+              width: '90%',
+            }}
+          >
+            <h2 style={{ marginBottom: '20px' }}>Вход в админку</h2>
+            <input
+              type="password"
+              placeholder="Пароль"
+              value={adminPassword}
+              onChange={(e) => setAdminPassword(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleAdminLogin();
+                }
+              }}
+              style={{
+                width: '100%',
+                padding: '12px',
+                marginBottom: '15px',
+                fontSize: '16px',
+                border: '1px solid #ddd',
+                borderRadius: '6px',
+              }}
+            />
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={handleAdminLogin}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  fontSize: '16px',
+                  backgroundColor: '#0070f3',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                }}
+              >
+                Войти
+              </button>
+              <button
+                onClick={() => {
+                  setShowLoginModal(false);
+                  setAdminPassword('');
+                }}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  fontSize: '16px',
+                  backgroundColor: '#ddd',
+                  color: '#333',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                }}
+              >
+                Отмена
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </main>
