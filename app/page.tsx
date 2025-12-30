@@ -480,7 +480,7 @@ export default function Home() {
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(3, auto)',
-          gap: '8px',
+          gap: '12px',
           flex: 1,
           alignSelf: 'flex-start',
           justifyContent: 'flex-end',
@@ -723,6 +723,15 @@ export default function Home() {
           Связаться
         </button>
       </div>
+
+      {/* Синяя горизонтальная линия */}
+      <div style={{
+        width: '100%',
+        height: '1px',
+        backgroundColor: '#007bff',
+        marginTop: '20px',
+        marginBottom: '20px',
+      }} />
 
       {/* Сетка фотографий (3 колонки, как в Instagram) */}
       {photoGroups.length > 0 ? (
