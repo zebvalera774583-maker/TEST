@@ -57,13 +57,15 @@ export default function Home() {
         return;
       }
 
-      console.log('Загружено фото:', data?.length || 0);
+      console.log('Загружено фото из БД:', data?.length || 0);
+      console.log('Данные фото:', JSON.stringify(data, null, 2));
       setPhotos(data || []);
       
       // Группируем фото по group_id или created_at (для старых фото без group_id)
       const grouped: { [key: string]: SitePhoto[] } = {};
       (data || []).forEach(photo => {
-        const groupId = photo.group_id || `group-${new Date(photo.created_at).getTime()}`;
+        // Используем group_id если есть, иначе создаем группу по времени создания (округленное до секунды)
+        const groupId = photo.group_id || `group-${Math.floor(new Date(photo.created_at).getTime() / 1000)}`;
         if (!grouped[groupId]) {
           grouped[groupId] = [];
         }
@@ -75,6 +77,8 @@ export default function Home() {
         photos: grouped[groupId].sort((a, b) => a.sort_order - b.sort_order),
       }));
       
+      console.log('Сгруппировано групп:', groups.length);
+      console.log('Группы:', JSON.stringify(groups, null, 2));
       setPhotoGroups(groups);
     } catch (error: any) {
       console.error('Ошибка:', error);
@@ -200,10 +204,22 @@ export default function Home() {
           }),
         });
 
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          console.error('Ошибка сохранения в БД:', errorData);
+          continue;
+        }
+
+        const result = await response.json();
+        console.log('Фото сохранено в БД:', result);
+
         setUploadProgress(((i + 1) / imageFiles.length) * 100);
       }
 
+      // Перезагружаем фото после загрузки
+      console.log('Перезагружаем фото...');
       await loadPhotos();
+      console.log('Фото перезагружены');
       alert(`Успешно загружено ${imageFiles.length} фотографий`);
     } catch (error: any) {
       console.error('Ошибка:', error);
