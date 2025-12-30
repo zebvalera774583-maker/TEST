@@ -31,14 +31,28 @@ export default function AdminPage() {
     }
   }, []);
 
-  const handleLogin = () => {
-    const adminPassword = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || '';
-    if (password === adminPassword) {
-      localStorage.setItem('admin_authenticated', 'true');
-      setIsAuthenticated(true);
-      loadPhotos();
-    } else {
-      alert('Неверный пароль');
+  const handleLogin = async () => {
+    try {
+      const response = await fetch('/api/admin/auth', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ password }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        localStorage.setItem('admin_authenticated', 'true');
+        setIsAuthenticated(true);
+        loadPhotos();
+      } else {
+        alert(data.error || 'Неверный пароль');
+      }
+    } catch (error) {
+      console.error('Ошибка входа:', error);
+      alert('Ошибка при входе');
     }
   };
 
