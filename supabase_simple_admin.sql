@@ -26,9 +26,12 @@ ALTER TABLE site_photos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE site_stats ENABLE ROW LEVEL SECURITY;
 
 -- Политики для публичного доступа (чтение)
+-- Удаляем политики, если они существуют, затем создаем заново
+DROP POLICY IF EXISTS "Public can read site_photos" ON site_photos;
 CREATE POLICY "Public can read site_photos" ON site_photos
   FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Public can read site_stats" ON site_stats;
 CREATE POLICY "Public can read site_stats" ON site_stats
   FOR SELECT USING (true);
 
