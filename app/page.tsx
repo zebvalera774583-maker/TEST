@@ -32,12 +32,17 @@ export default function Home() {
 
       if (error) {
         console.error('Ошибка загрузки фото:', error);
+        console.error('Детали ошибки:', JSON.stringify(error, null, 2));
+        // Показываем ошибку пользователю
+        alert(`Ошибка загрузки фото: ${error.message}. Проверьте, что таблица site_photos создана в Supabase.`);
         return;
       }
 
+      console.log('Загружено фото:', data?.length || 0);
       setPhotos(data || []);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Ошибка:', error);
+      alert(`Ошибка: ${error.message}`);
     } finally {
       setLoading(false);
     }
