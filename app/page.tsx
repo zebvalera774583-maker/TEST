@@ -79,7 +79,18 @@ export default function Home() {
       
       console.log('Сгруппировано групп:', groups.length);
       console.log('Группы:', JSON.stringify(groups, null, 2));
-      setPhotoGroups(groups);
+      
+      // Если групп нет, но фото есть - создаем группы из одиночных фото
+      if (groups.length === 0 && data && data.length > 0) {
+        console.log('Создаем группы из одиночных фото');
+        const singleGroups: PhotoGroup[] = data.map((photo) => ({
+          groupId: `single-${photo.id}`,
+          photos: [photo],
+        }));
+        setPhotoGroups(singleGroups);
+      } else {
+        setPhotoGroups(groups);
+      }
     } catch (error: any) {
       console.error('Ошибка:', error);
       alert(`Ошибка: ${error.message}`);
