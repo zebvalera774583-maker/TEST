@@ -479,10 +479,11 @@ export default function Home() {
         {/* Статистика вровень с верхом аватара */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: '15px',
+          gridTemplateColumns: 'repeat(3, auto)',
+          gap: '25px',
           flex: 1,
           alignSelf: 'flex-start',
+          justifyContent: 'flex-end',
         }}>
           <div style={{ 
             fontSize: '14px', 
@@ -508,20 +509,6 @@ export default function Home() {
             <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '4px' }}>4</div>
             <div style={{ fontSize: '12px', color: '#666' }}>города</div>
           </div>
-        </div>
-
-        {/* Inbox иконка справа */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '4px',
-          color: '#333',
-          fontSize: '14px',
-          cursor: 'pointer',
-          alignSelf: 'flex-start',
-        }}>
-          <span>📥</span>
-          <span>Inbox</span>
         </div>
       </div>
 
