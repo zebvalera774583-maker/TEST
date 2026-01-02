@@ -666,9 +666,9 @@ export default function Home() {
           flex: '1',
           padding: '10px 20px',
           fontSize: '14px',
-          border: '1px solid #ddd',
+          border: 'none',
           borderRadius: '6px',
-          backgroundColor: 'white',
+          backgroundColor: '#e8e8e8',
           color: '#333',
           cursor: 'pointer',
           transition: 'all 0.2s',
@@ -676,9 +676,10 @@ export default function Home() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          fontWeight: '500',
         }}
-        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f5f5f5'}
-        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#d8d8d8'}
+        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#e8e8e8'}
         >
           Редактировать
         </button>
@@ -686,9 +687,9 @@ export default function Home() {
           flex: '1',
           padding: '10px 20px',
           fontSize: '14px',
-          border: '1px solid #ddd',
+          border: 'none',
           borderRadius: '6px',
-          backgroundColor: 'white',
+          backgroundColor: '#e8e8e8',
           color: '#333',
           cursor: 'pointer',
           transition: 'all 0.2s',
@@ -696,9 +697,10 @@ export default function Home() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          fontWeight: '500',
         }}
-        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f5f5f5'}
-        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#d8d8d8'}
+        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#e8e8e8'}
         >
           Поделиться
         </button>
@@ -706,9 +708,9 @@ export default function Home() {
           flex: '1',
           padding: '10px 20px',
           fontSize: '14px',
-          border: '1px solid #ddd',
+          border: 'none',
           borderRadius: '6px',
-          backgroundColor: 'white',
+          backgroundColor: '#e8e8e8',
           color: '#333',
           cursor: 'pointer',
           transition: 'all 0.2s',
@@ -716,9 +718,10 @@ export default function Home() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          fontWeight: '500',
         }}
-        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f5f5f5'}
-        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#d8d8d8'}
+        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#e8e8e8'}
         >
           Связаться
         </button>
@@ -739,7 +742,7 @@ export default function Home() {
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '15px',
+            gap: '2px',
           }}>
             {photoGroups.map((group) => (
               <PhotoGridItem
@@ -758,7 +761,7 @@ export default function Home() {
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '15px',
+            gap: '2px',
           }}>
             {photos.map((photo) => (
               <div
@@ -766,7 +769,6 @@ export default function Home() {
                 onClick={() => setOpenFullscreen({ groupId: `single-${photo.id}`, photoIndex: 0 })}
                 style={{
                   aspectRatio: '1',
-                  borderRadius: '12px',
                   overflow: 'hidden',
                   backgroundColor: '#f5f5f5',
                   cursor: 'pointer',
@@ -960,7 +962,7 @@ const PhotoGridItem = ({
   const [currentIndex, setCurrentIndex] = useState(0);
 
   return (
-    <div style={{ position: 'relative', aspectRatio: '1', borderRadius: '12px', overflow: 'hidden', backgroundColor: '#f5f5f5', cursor: 'pointer' }}>
+    <div style={{ position: 'relative', aspectRatio: '1', overflow: 'hidden', backgroundColor: '#f5f5f5', cursor: 'pointer' }}>
       {/* Карусель внутри квадрата */}
       <div 
         onClick={() => onOpenFullscreen(currentIndex)}
@@ -1119,6 +1121,9 @@ const FullscreenCarousel = ({
   onIndexChange: (index: number) => void;
   onClose: () => void;
 }) => {
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowLeft' && currentIndex > 0) {
@@ -1134,9 +1139,42 @@ const FullscreenCarousel = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [currentIndex, photos.length, onClose, onIndexChange]);
 
+  // Обработка свайпов
+  const minSwipeDistance = 50;
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe && currentIndex < photos.length - 1) {
+      onIndexChange(currentIndex + 1);
+    }
+    if (isRightSwipe && currentIndex > 0) {
+      onIndexChange(currentIndex - 1);
+    }
+  };
+
+  // Ширина одного фото (80% экрана, чтобы были видны части соседних)
+  const photoWidth = '80%';
+  const gap = '2%';
+
   return (
     <div
       onClick={(e) => e.stopPropagation()}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
       style={{
         position: 'relative',
         width: '100%',
@@ -1144,24 +1182,24 @@ const FullscreenCarousel = ({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        maxWidth: '90vw',
-        maxHeight: '90vh',
+        overflow: 'hidden',
       }}
     >
-      {/* Контейнер изображений */}
+      {/* Контейнер изображений с видимыми частями соседних */}
       <div style={{
         display: 'flex',
-        transform: `translateX(-${currentIndex * 100}%)`,
+        transform: `translateX(calc(-${currentIndex} * (${photoWidth} + ${gap}) + (100% - ${photoWidth}) / 2))`,
         transition: 'transform 0.3s ease',
-        width: '100%',
         height: '100%',
+        gap: gap,
+        alignItems: 'center',
       }}>
         {photos.map((photo, index) => (
           <div
             key={photo.id}
             style={{
-              minWidth: '100%',
-              width: '100%',
+              minWidth: photoWidth,
+              width: photoWidth,
               flexShrink: 0,
               height: '100%',
               display: 'flex',
