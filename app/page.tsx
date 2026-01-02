@@ -668,8 +668,8 @@ export default function Home() {
           fontSize: '14px',
           border: 'none',
           borderRadius: '6px',
-          backgroundColor: '#e8e8e8',
-          color: '#333',
+          backgroundColor: '#485B78',
+          color: '#ffffff',
           cursor: 'pointer',
           transition: 'all 0.2s',
           minHeight: '40px',
@@ -678,8 +678,8 @@ export default function Home() {
           justifyContent: 'center',
           fontWeight: '500',
         }}
-        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#d8d8d8'}
-        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#e8e8e8'}
+        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5a6f8f'}
+        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#485B78'}
         >
           Редактировать
         </button>
@@ -689,8 +689,8 @@ export default function Home() {
           fontSize: '14px',
           border: 'none',
           borderRadius: '6px',
-          backgroundColor: '#e8e8e8',
-          color: '#333',
+          backgroundColor: '#485B78',
+          color: '#ffffff',
           cursor: 'pointer',
           transition: 'all 0.2s',
           minHeight: '40px',
@@ -699,8 +699,8 @@ export default function Home() {
           justifyContent: 'center',
           fontWeight: '500',
         }}
-        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#d8d8d8'}
-        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#e8e8e8'}
+        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5a6f8f'}
+        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#485B78'}
         >
           Поделиться
         </button>
@@ -710,8 +710,8 @@ export default function Home() {
           fontSize: '14px',
           border: 'none',
           borderRadius: '6px',
-          backgroundColor: '#e8e8e8',
-          color: '#333',
+          backgroundColor: '#485B78',
+          color: '#ffffff',
           cursor: 'pointer',
           transition: 'all 0.2s',
           minHeight: '40px',
@@ -720,8 +720,8 @@ export default function Home() {
           justifyContent: 'center',
           fontWeight: '500',
         }}
-        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#d8d8d8'}
-        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#e8e8e8'}
+        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5a6f8f'}
+        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#485B78'}
         >
           Связаться
         </button>
