@@ -48,19 +48,5 @@ DROP POLICY IF EXISTS "Public can read site_stats" ON site_stats;
 CREATE POLICY "Public can read site_stats" ON site_stats
   FOR SELECT USING (true);
 
--- Добавляем колонку avatar_url, если её нет (для существующих таблиц)
-DO $$ 
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns 
-    WHERE table_name = 'site_stats' AND column_name = 'avatar_url'
-  ) THEN
-    ALTER TABLE site_stats ADD COLUMN avatar_url TEXT;
-    RAISE NOTICE 'Колонка avatar_url успешно добавлена';
-  ELSE
-    RAISE NOTICE 'Колонка avatar_url уже существует';
-  END IF;
-END $$;
-
 -- Политики для админки (запись/удаление через service role key)
 -- Эти операции будут выполняться через supabaseAdmin, который обходит RLS
