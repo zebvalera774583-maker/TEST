@@ -555,9 +555,18 @@ export default function Home() {
           />
           {/* Поле для ввода подписи */}
           <div style={{ marginBottom: '12px' }}>
+            <label style={{
+              display: 'block',
+              marginBottom: '6px',
+              fontSize: '14px',
+              fontWeight: '500',
+              color: '#333',
+            }}>
+              Подпись к фото (необязательно)
+            </label>
             <input
               type="text"
-              placeholder="Подпись к фото (необязательно)"
+              placeholder="Введите подпись перед загрузкой фото..."
               value={photoCaption}
               onChange={(e) => setPhotoCaption(e.target.value)}
               disabled={uploading}
@@ -572,11 +581,12 @@ export default function Home() {
               }}
             />
             <p style={{
-              marginTop: '4px',
+              marginTop: '6px',
               fontSize: '12px',
               color: '#666',
+              fontStyle: 'italic',
             }}>
-              Подпись будет добавлена ко всем фото в этой загрузке
+              ⓘ Введите подпись ЗДЕСЬ, затем нажмите кнопку "Загрузить фото" ниже. Подпись будет добавлена ко всем выбранным фото.
             </p>
           </div>
           <button
