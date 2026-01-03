@@ -704,19 +704,17 @@ export default function Home() {
 
       {/* Кнопки действий вровень между собой */}
       <div style={{
-        display: 'flex',
-        gap: '12px',
+        display: 'grid',
+        gridTemplateColumns: 'repeat(3, 1fr)',
+        gap: '2px',
         marginBottom: '40px',
-        flexWrap: 'nowrap',
-        alignItems: 'stretch',
-        width: '100%',
       }}>
         <button style={{
-          flex: '1',
+          width: '100%',
           padding: '10px 20px',
           fontSize: '14px',
           border: 'none',
-          borderRadius: '6px',
+          borderRadius: '0',
           backgroundColor: '#485B78',
           color: '#ffffff',
           cursor: 'pointer',
@@ -733,11 +731,11 @@ export default function Home() {
           Редактировать
         </button>
         <button style={{
-          flex: '1',
+          width: '100%',
           padding: '10px 20px',
           fontSize: '14px',
           border: 'none',
-          borderRadius: '6px',
+          borderRadius: '0',
           backgroundColor: '#485B78',
           color: '#ffffff',
           cursor: 'pointer',
@@ -754,11 +752,11 @@ export default function Home() {
           Поделиться
         </button>
         <button style={{
-          flex: '1',
+          width: '100%',
           padding: '10px 20px',
           fontSize: '14px',
           border: 'none',
-          borderRadius: '6px',
+          borderRadius: '0',
           backgroundColor: '#485B78',
           color: '#ffffff',
           cursor: 'pointer',
