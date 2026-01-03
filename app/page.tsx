@@ -1055,7 +1055,7 @@ const FullscreenCarousel = ({
         transition: 'transform 0.3s ease',
         height: '100%',
         gap: gap,
-        alignItems: 'center',
+        alignItems: 'stretch',
       }}>
         {photos.map((photo, index) => (
           <div
@@ -1068,15 +1068,17 @@ const FullscreenCarousel = ({
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              justifyContent: 'center',
+              justifyContent: 'space-between',
+              overflow: 'hidden',
             }}
           >
             <div style={{
-              flex: 1,
+              flex: '1 1 auto',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               width: '100%',
+              minHeight: 0,
             }}>
               <img
                 src={photo.public_url}
@@ -1095,8 +1097,9 @@ const FullscreenCarousel = ({
               color: 'white',
               textAlign: 'center',
               fontSize: isMobile ? '14px' : '16px',
-              backgroundColor: 'rgba(0, 0, 0, 0.3)',
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
               width: '100%',
+              flexShrink: 0,
             }}>
               Фото {index + 1} из {photos.length}
             </div>
