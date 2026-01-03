@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { public_url, sort_order, group_id } = body;
+    const { public_url, sort_order, group_id, caption } = body;
 
     if (!public_url) {
       return NextResponse.json(
@@ -29,6 +29,11 @@ export async function POST(request: NextRequest) {
     // Добавляем group_id только если он передан
     if (group_id) {
       insertData.group_id = group_id;
+    }
+    
+    // Добавляем caption если передан
+    if (caption) {
+      insertData.caption = caption;
     }
 
     const { data, error } = await supabaseAdmin

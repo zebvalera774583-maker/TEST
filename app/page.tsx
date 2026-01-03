@@ -10,6 +10,7 @@ interface SitePhoto {
   sort_order: number;
   created_at: string;
   group_id?: string; // ID группы загрузки
+  caption?: string; // Подпись к фото
 }
 
 interface PhotoGroup {
@@ -253,6 +254,7 @@ export default function Home() {
             public_url: urlData.publicUrl,
             sort_order: nextSortOrder + i,
             group_id: groupId, // Добавляем group_id
+            caption: photoCaption.trim() || null, // Добавляем подпись (одинаковую для всей группы)
           }),
         });
 
@@ -281,6 +283,9 @@ export default function Home() {
       } else {
         alert(`Успешно загружено ${imageFiles.length} фотографий`);
       }
+      
+      // Очищаем подпись после загрузки
+      setPhotoCaption('');
     } catch (error: any) {
       console.error('Ошибка:', error);
       alert(`Ошибка: ${error.message}`);
@@ -548,6 +553,32 @@ export default function Home() {
             disabled={uploading}
             style={{ display: 'none' }}
           />
+          {/* Поле для ввода подписи */}
+          <div style={{ marginBottom: '12px' }}>
+            <input
+              type="text"
+              placeholder="Подпись к фото (необязательно)"
+              value={photoCaption}
+              onChange={(e) => setPhotoCaption(e.target.value)}
+              disabled={uploading}
+              style={{
+                width: '100%',
+                padding: '12px',
+                fontSize: '14px',
+                border: '1px solid #ddd',
+                borderRadius: '8px',
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
+            />
+            <p style={{
+              marginTop: '4px',
+              fontSize: '12px',
+              color: '#666',
+            }}>
+              Подпись будет добавлена ко всем фото в этой загрузке
+            </p>
+          </div>
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
@@ -1091,18 +1122,20 @@ const FullscreenCarousel = ({
                 }}
               />
             </div>
-            {/* Подпись под фото */}
-            <div style={{
-              padding: '15px 20px',
-              color: 'white',
-              textAlign: 'center',
-              fontSize: isMobile ? '14px' : '16px',
-              backgroundColor: 'rgba(0, 0, 0, 0.5)',
-              width: '100%',
-              flexShrink: 0,
-            }}>
-              Фото {index + 1} из {photos.length}
-            </div>
+            {/* Подпись под фото - показываем только если есть caption или несколько фото */}
+            {(photos[currentIndex]?.caption || photos.length > 1) && (
+              <div style={{
+                padding: '15px 20px',
+                color: 'white',
+                textAlign: 'center',
+                fontSize: isMobile ? '14px' : '16px',
+                backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                width: '100%',
+                flexShrink: 0,
+              }}>
+                {photos[currentIndex]?.caption || `Фото ${currentIndex + 1} из ${photos.length}`}
+              </div>
+            )}
           </div>
         ))}
       </div>
