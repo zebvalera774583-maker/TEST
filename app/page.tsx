@@ -24,8 +24,6 @@ export default function Home() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [openFullscreen, setOpenFullscreen] = useState<{ groupId: string; photoIndex: number } | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [showLoginModal, setShowLoginModal] = useState(false);
-  const [adminPassword, setAdminPassword] = useState('');
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -176,29 +174,6 @@ export default function Home() {
   };
 
   // Админ функции
-  const handleAdminLogin = async () => {
-    try {
-      const response = await fetch('/api/admin/auth', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: adminPassword }),
-      });
-
-      const data = await response.json();
-      if (response.ok && data.success) {
-        localStorage.setItem('admin_authenticated', 'true');
-        setIsAdmin(true);
-        setShowLoginModal(false);
-        setAdminPassword('');
-      } else {
-        alert(data.error || 'Неверный пароль');
-      }
-    } catch (error) {
-      console.error('Ошибка входа:', error);
-      alert('Ошибка при входе');
-    }
-  };
-
   const handleLogout = () => {
     localStorage.removeItem('admin_authenticated');
     setIsAdmin(false);
@@ -561,36 +536,6 @@ export default function Home() {
         </div>
       )}
 
-      {/* Скрытая кнопка входа для неавторизованных (только через модальное окно) */}
-      {!isAdmin && (
-        <div style={{ 
-          position: 'fixed', 
-          bottom: '20px', 
-          right: '20px', 
-          zIndex: 999,
-          opacity: 0.3,
-          transition: 'opacity 0.3s',
-        }}
-        onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
-        onMouseLeave={(e) => e.currentTarget.style.opacity = '0.3'}
-        >
-          <button
-            onClick={() => setShowLoginModal(true)}
-            style={{
-              padding: '6px 12px',
-              fontSize: '11px',
-              border: '1px solid #999',
-              borderRadius: '6px',
-              backgroundColor: '#999',
-              color: 'white',
-              cursor: 'pointer',
-            }}
-          >
-            Админ
-          </button>
-        </div>
-      )}
-
       {/* Кнопка загрузки фото (только для админа) - синяя кнопка как раньше */}
       {isAdmin && (
         <div style={{ marginBottom: '20px' }}>
@@ -727,15 +672,6 @@ export default function Home() {
         </button>
       </div>
 
-      {/* Синяя горизонтальная линия */}
-      <div style={{
-        width: '100%',
-        height: '5px',
-        backgroundColor: '#007bff',
-        marginTop: '20px',
-        marginBottom: '20px',
-      }} />
-
       {/* Сетка фотографий (3 колонки, как в Instagram) */}
       {photoGroups.length > 0 ? (
         <div style={{ marginTop: '40px' }}>
@@ -858,91 +794,6 @@ export default function Home() {
         );
       })()}
 
-      {/* Модальное окно входа */}
-      {showLoginModal && (
-        <div
-          onClick={() => setShowLoginModal(false)}
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            zIndex: 1000,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              backgroundColor: 'white',
-              padding: '30px',
-              borderRadius: '8px',
-              maxWidth: '400px',
-              width: '90%',
-            }}
-          >
-            <h2 style={{ marginBottom: '20px' }}>Вход в админку</h2>
-            <input
-              type="password"
-              placeholder="Пароль"
-              value={adminPassword}
-              onChange={(e) => setAdminPassword(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleAdminLogin();
-                }
-              }}
-              style={{
-                width: '100%',
-                padding: '12px',
-                marginBottom: '15px',
-                fontSize: '16px',
-                border: '1px solid #ddd',
-                borderRadius: '6px',
-              }}
-            />
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button
-                onClick={handleAdminLogin}
-                style={{
-                  flex: 1,
-                  padding: '12px',
-                  fontSize: '16px',
-                  backgroundColor: '#0070f3',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                }}
-              >
-                Войти
-              </button>
-              <button
-                onClick={() => {
-                  setShowLoginModal(false);
-                  setAdminPassword('');
-                }}
-                style={{
-                  flex: 1,
-                  padding: '12px',
-                  fontSize: '16px',
-                  backgroundColor: '#ddd',
-                  color: '#333',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                }}
-              >
-                Отмена
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </main>
   );
 }

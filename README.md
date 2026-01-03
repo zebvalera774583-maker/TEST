@@ -39,4 +39,10 @@ npm run dev
 
 ## Деплой
 
+### На Yandex Cloud
+
+См. подробную инструкцию в файле [DEPLOY_YANDEX_CLOUD.md](./DEPLOY_YANDEX_CLOUD.md)
+
+### На Vercel (старый способ)
+
 Проект автоматически деплоится на Vercel при push в main ветку.
