@@ -30,6 +30,8 @@ export default function Home() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
+  const [photoCaption, setPhotoCaption] = useState('');
+  const [showCaptionInput, setShowCaptionInput] = useState(false);
 
   // Загружаем фото и увеличиваем счетчик просмотров
   useEffect(() => {
