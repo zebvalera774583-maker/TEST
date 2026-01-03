@@ -553,72 +553,134 @@ export default function Home() {
             disabled={uploading}
             style={{ display: 'none' }}
           />
-          {/* Поле для ввода подписи */}
-          <div style={{ marginBottom: '12px' }}>
-            <label style={{
-              display: 'block',
-              marginBottom: '6px',
-              fontSize: '14px',
-              fontWeight: '500',
-              color: '#333',
-            }}>
-              Подпись к фото (необязательно)
-            </label>
-            <input
-              type="text"
-              placeholder="Введите подпись перед загрузкой фото..."
-              value={photoCaption}
-              onChange={(e) => setPhotoCaption(e.target.value)}
+          
+          {!showCaptionInput ? (
+            // Первая кнопка - показать форму загрузки
+            <button
+              onClick={() => setShowCaptionInput(true)}
               disabled={uploading}
               style={{
                 width: '100%',
-                padding: '12px',
-                fontSize: '14px',
-                border: '1px solid #ddd',
+                padding: '14px 20px',
+                fontSize: '16px',
+                fontWeight: '500',
+                backgroundColor: uploading ? '#999' : '#0070f3',
+                color: 'white',
+                border: 'none',
                 borderRadius: '8px',
-                outline: 'none',
-                boxSizing: 'border-box',
+                cursor: uploading ? 'wait' : 'pointer',
+                opacity: uploading ? 0.6 : 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                transition: 'background-color 0.2s',
               }}
-            />
-            <p style={{
-              marginTop: '6px',
-              fontSize: '12px',
-              color: '#666',
-              fontStyle: 'italic',
-            }}>
-              ⓘ Введите подпись ЗДЕСЬ, затем нажмите кнопку "Загрузить фото" ниже. Подпись будет добавлена ко всем выбранным фото.
-            </p>
-          </div>
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-            style={{
-              width: '100%',
-              padding: '14px 20px',
-              fontSize: '16px',
-              fontWeight: '500',
-              backgroundColor: uploading ? '#999' : '#0070f3',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: uploading ? 'wait' : 'pointer',
-              opacity: uploading ? 0.6 : 1,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              transition: 'background-color 0.2s',
-            }}
-            onMouseEnter={(e) => {
-              if (!uploading) e.currentTarget.style.backgroundColor = '#0051cc';
-            }}
-            onMouseLeave={(e) => {
-              if (!uploading) e.currentTarget.style.backgroundColor = '#0070f3';
-            }}
-          >
-            <span>📷</span>
-            {uploading ? `Загрузка... ${Math.round(uploadProgress)}%` : 'Загрузить фото'}
-          </button>
+              onMouseEnter={(e) => {
+                if (!uploading) e.currentTarget.style.backgroundColor = '#0051cc';
+              }}
+              onMouseLeave={(e) => {
+                if (!uploading) e.currentTarget.style.backgroundColor = '#0070f3';
+              }}
+            >
+              <span>📷</span>
+              Загрузить фото
+            </button>
+          ) : (
+            // Форма с полем подписи и кнопкой выбора файлов
+            <div>
+              {/* Поле для ввода подписи */}
+              <div style={{ marginBottom: '12px' }}>
+                <label style={{
+                  display: 'block',
+                  marginBottom: '6px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#333',
+                }}>
+                  Подпись к фото (необязательно)
+                </label>
+                <input
+                  type="text"
+                  placeholder="Введите подпись для фото..."
+                  value={photoCaption}
+                  onChange={(e) => setPhotoCaption(e.target.value)}
+                  disabled={uploading}
+                  autoFocus
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    fontSize: '14px',
+                    border: '1px solid #ddd',
+                    borderRadius: '8px',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+                <p style={{
+                  marginTop: '6px',
+                  fontSize: '12px',
+                  color: '#666',
+                }}>
+                  Подпись будет добавлена ко всем выбранным фото
+                </p>
+              </div>
+              
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  style={{
+                    flex: 1,
+                    padding: '14px 20px',
+                    fontSize: '16px',
+                    fontWeight: '500',
+                    backgroundColor: uploading ? '#999' : '#0070f3',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: uploading ? 'wait' : 'pointer',
+                    opacity: uploading ? 0.6 : 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    transition: 'background-color 0.2s',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!uploading) e.currentTarget.style.backgroundColor = '#0051cc';
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!uploading) e.currentTarget.style.backgroundColor = '#0070f3';
+                  }}
+                >
+                  <span>📷</span>
+                  {uploading ? `Загрузка... ${Math.round(uploadProgress)}%` : 'Выбрать фото'}
+                </button>
+                
+                <button
+                  onClick={() => {
+                    setShowCaptionInput(false);
+                    setPhotoCaption('');
+                  }}
+                  disabled={uploading}
+                  style={{
+                    padding: '14px 20px',
+                    fontSize: '16px',
+                    fontWeight: '500',
+                    backgroundColor: '#999',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: uploading ? 'wait' : 'pointer',
+                    opacity: uploading ? 0.6 : 1,
+                  }}
+                >
+                  Отмена
+                </button>
+              </div>
+            </div>
+          )}
           {uploading && (
             <div style={{
               width: '100%',
