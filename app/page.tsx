@@ -974,6 +974,16 @@ const FullscreenCarousel = ({
 }) => {
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -1016,9 +1026,9 @@ const FullscreenCarousel = ({
     }
   };
 
-  // Ширина одного фото (80% экрана, чтобы были видны части соседних)
-  const photoWidth = '80%';
-  const gap = '2%';
+  // Ширина одного фото (100% на мобильных, 80% на десктопе)
+  const photoWidth = isMobile ? '100%' : '80%';
+  const gap = isMobile ? '0%' : '2%';
 
   return (
     <div
@@ -1039,7 +1049,9 @@ const FullscreenCarousel = ({
       {/* Контейнер изображений с видимыми частями соседних */}
       <div style={{
         display: 'flex',
-        transform: `translateX(calc(-${currentIndex} * (${photoWidth} + ${gap}) + (100% - ${photoWidth}) / 2))`,
+        transform: isMobile 
+          ? `translateX(-${currentIndex * 100}%)`
+          : `translateX(calc(-${currentIndex} * (${photoWidth} + ${gap}) + (100% - ${photoWidth}) / 2))`,
         transition: 'transform 0.3s ease',
         height: '100%',
         gap: gap,
@@ -1054,20 +1066,40 @@ const FullscreenCarousel = ({
               flexShrink: 0,
               height: '100%',
               display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
-            <img
-              src={photo.public_url}
-              alt={`Photo ${index + 1}`}
-              style={{
-                maxWidth: '100%',
-                maxHeight: '100%',
-                objectFit: 'contain',
-                display: 'block',
-              }}
-            />
+            <div style={{
+              flex: 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '100%',
+            }}>
+              <img
+                src={photo.public_url}
+                alt={`Photo ${index + 1}`}
+                style={{
+                  maxWidth: '100%',
+                  maxHeight: '100%',
+                  objectFit: 'contain',
+                  display: 'block',
+                }}
+              />
+            </div>
+            {/* Подпись под фото */}
+            <div style={{
+              padding: '15px 20px',
+              color: 'white',
+              textAlign: 'center',
+              fontSize: isMobile ? '14px' : '16px',
+              backgroundColor: 'rgba(0, 0, 0, 0.3)',
+              width: '100%',
+            }}>
+              Фото {index + 1} из {photos.length}
+            </div>
           </div>
         ))}
       </div>
@@ -1132,8 +1164,8 @@ const FullscreenCarousel = ({
         </button>
       )}
 
-      {/* Точки-индикаторы */}
-      {photos.length > 1 && (
+      {/* Точки-индикаторы (только на десктопе, на мобильных подпись показывает номер) */}
+      {photos.length > 1 && !isMobile && (
         <div style={{
           position: 'absolute',
           bottom: '30px',
@@ -1165,18 +1197,20 @@ const FullscreenCarousel = ({
         </div>
       )}
 
-      {/* Счетчик */}
-      <div style={{
-        position: 'absolute',
-        top: '30px',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        color: 'white',
-        fontSize: '18px',
-        zIndex: 1002,
-      }}>
-        {currentIndex + 1} / {photos.length}
-      </div>
+      {/* Счетчик (только на десктопе, на мобильных подпись показывает номер) */}
+      {!isMobile && (
+        <div style={{
+          position: 'absolute',
+          top: '30px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          color: 'white',
+          fontSize: '18px',
+          zIndex: 1002,
+        }}>
+          {currentIndex + 1} / {photos.length}
+        </div>
+      )}
     </div>
   );
 };
