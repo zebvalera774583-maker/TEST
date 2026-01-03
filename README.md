@@ -39,6 +39,16 @@ npm run dev
 
 ## Деплой
 
+### На Timeweb App Platform (рекомендуется) ✅
+
+Автоматический деплой из GitHub. См. подробную инструкцию в файле [DEPLOY_TIMEWEB_APP_PLATFORM.md](./DEPLOY_TIMEWEB_APP_PLATFORM.md)
+
+**Преимущества:**
+- Автоматические обновления при `git push`
+- Управление через панель (без SSH)
+- Автоматический SSL
+- Российский хостинг (работает без VPN)
+
 ### На Yandex Cloud
 
 См. подробную инструкцию в файле [DEPLOY_YANDEX_CLOUD.md](./DEPLOY_YANDEX_CLOUD.md)
