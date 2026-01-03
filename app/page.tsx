@@ -284,8 +284,9 @@ export default function Home() {
         alert(`Успешно загружено ${imageFiles.length} фотографий`);
       }
       
-      // Очищаем подпись после загрузки
+      // Очищаем подпись после загрузки и скрываем форму
       setPhotoCaption('');
+      setShowCaptionInput(false);
     } catch (error: any) {
       console.error('Ошибка:', error);
       alert(`Ошибка: ${error.message}`);
