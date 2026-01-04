@@ -1479,60 +1479,7 @@ const FullscreenCarousel = ({
         </button>
       )}
 
-      {/* Кнопки в полноэкранном режиме */}
-      <div style={{
-        position: 'absolute',
-        top: '20px',
-        left: '20px',
-        display: 'flex',
-        gap: '10px',
-        zIndex: 1002,
-      }}>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onOpenContact();
-          }}
-          style={{
-            width: '40px',
-            height: '40px',
-            borderRadius: '50%',
-            backgroundColor: 'rgba(0, 0, 0, 0.1)',
-            border: 'none',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '20px',
-          }}
-          title="Связаться"
-        >
-          💬
-        </button>
-        <a
-          href="tel:+79991234567"
-          onClick={(e) => e.stopPropagation()}
-          style={{
-            width: '40px',
-            height: '40px',
-            borderRadius: '50%',
-            backgroundColor: 'rgba(0, 0, 0, 0.1)',
-            border: 'none',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '20px',
-            textDecoration: 'none',
-            color: 'inherit',
-          }}
-          title="Позвонить"
-        >
-          📞
-        </a>
-      </div>
-
-      {/* Контейнер для подписи и индикаторов */}
+      {/* Контейнер для кнопок, индикаторов и подписи */}
       <div style={{
         position: 'absolute',
         bottom: 0,
@@ -1541,14 +1488,62 @@ const FullscreenCarousel = ({
         zIndex: 1002,
         display: 'flex',
         flexDirection: 'column',
-        alignItems: 'center',
+        alignItems: 'flex-start',
+        padding: '15px 20px',
+        backgroundColor: '#fff',
       }}>
-        {/* Индикатор карусели (точки) - под фото, над текстом */}
+        {/* Кнопки телефона и сообщения - под фото, над текстом */}
+        <div style={{
+          display: 'flex',
+          gap: '15px',
+          marginBottom: '10px',
+        }}>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenContact();
+            }}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '24px',
+              padding: 0,
+            }}
+            title="Связаться"
+          >
+            💬
+          </button>
+          <a
+            href="tel:+79991234567"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '24px',
+              textDecoration: 'none',
+              color: 'inherit',
+              padding: 0,
+            }}
+            title="Позвонить"
+          >
+            📞
+          </a>
+        </div>
+
+        {/* Индикатор карусели (точки) - под кнопками, над текстом */}
         {photos.length > 1 && (
           <div style={{
             display: 'flex',
-            gap: '8px',
-            marginBottom: '10px',
+            gap: '6px',
+            marginBottom: '12px',
           }}>
             {photos.map((_, index) => (
               <button
@@ -1558,11 +1553,11 @@ const FullscreenCarousel = ({
                   onIndexChange(index);
                 }}
                 style={{
-                  width: '8px',
-                  height: '8px',
+                  width: '6px',
+                  height: '6px',
                   borderRadius: '50%',
                   border: 'none',
-                  backgroundColor: index === currentIndex ? '#485B78' : 'rgba(72, 91, 120, 0.3)',
+                  backgroundColor: index === currentIndex ? '#485B78' : '#ccc',
                   cursor: 'pointer',
                   transition: 'background-color 0.2s',
                   padding: 0,
@@ -1583,14 +1578,10 @@ const FullscreenCarousel = ({
 
           return (
             <div style={{
-              padding: '15px 20px',
               color: '#000',
-              textAlign: 'center',
+              textAlign: 'left',
               fontSize: isMobile ? '14px' : '16px',
-              backgroundColor: '#fff',
               width: '100%',
-              flexShrink: 0,
-              boxSizing: 'border-box',
             }}>
               {truncatedText}
               {shouldTruncate && (
