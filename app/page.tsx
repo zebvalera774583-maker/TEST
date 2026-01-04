@@ -32,6 +32,9 @@ export default function Home() {
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [photoCaption, setPhotoCaption] = useState('');
   const [showCaptionInput, setShowCaptionInput] = useState(false);
+  const [showContactModal, setShowContactModal] = useState(false);
+  const [contactForm, setContactForm] = useState({ name: '', phone: '', comment: '' });
+  const [contactSubmitting, setContactSubmitting] = useState(false);
 
   // Загружаем фото и увеличиваем счетчик просмотров
   useEffect(() => {
@@ -343,6 +346,37 @@ export default function Home() {
     } catch (error) {
       console.error('Ошибка:', error);
       alert('Ошибка изменения порядка');
+    }
+  };
+
+  const handleSubmitContactForm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!contactForm.name.trim() || !contactForm.phone.trim()) {
+      alert('Пожалуйста, заполните имя и телефон');
+      return;
+    }
+
+    setContactSubmitting(true);
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(contactForm),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Ошибка отправки заявки');
+      }
+
+      alert('Заявка отправлена');
+      setShowContactModal(false);
+      setContactForm({ name: '', phone: '', comment: '' });
+    } catch (error: any) {
+      console.error('Ошибка:', error);
+      alert(error.message || 'Ошибка отправки заявки');
+    } finally {
+      setContactSubmitting(false);
     }
   };
 
@@ -710,27 +744,30 @@ export default function Home() {
         gridTemplateColumns: 'repeat(3, 1fr)',
         gap: '2px',
         marginBottom: '40px',
+        width: '100%',
       }}>
-        <button style={{
-          width: '100%',
-          padding: '10px 20px',
-          fontSize: '14px',
-          border: 'none',
-          borderRadius: '0',
-          backgroundColor: '#485B78',
-          color: '#ffffff',
-          cursor: 'pointer',
-          transition: 'all 0.2s',
-          minHeight: '40px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontWeight: '500',
-        }}
-        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5a6f8f'}
-        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#485B78'}
+        <button 
+          onClick={() => setShowContactModal(true)}
+          style={{
+            width: '100%',
+            padding: '10px 20px',
+            fontSize: '14px',
+            border: 'none',
+            borderRadius: '0',
+            backgroundColor: '#485B78',
+            color: '#ffffff',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            minHeight: '40px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontWeight: '500',
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5a6f8f'}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#485B78'}
         >
-          Редактировать
+          Узнать стоимость
         </button>
         <button style={{
           width: '100%',
@@ -846,7 +883,7 @@ export default function Home() {
               left: 0,
               right: 0,
               bottom: 0,
-              backgroundColor: 'rgba(0, 0, 0, 0.95)',
+              backgroundColor: 'rgba(255, 255, 255, 0.98)',
               zIndex: 1000,
               display: 'flex',
               alignItems: 'center',
@@ -873,8 +910,8 @@ export default function Home() {
                 width: '40px',
                 height: '40px',
                 borderRadius: '50%',
-                backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                color: 'white',
+                backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                color: '#333',
                 border: 'none',
                 cursor: 'pointer',
                 display: 'flex',
@@ -893,10 +930,174 @@ export default function Home() {
               currentIndex={openFullscreen.photoIndex}
               onIndexChange={(index) => setOpenFullscreen({ ...openFullscreen, photoIndex: index })}
               onClose={() => setOpenFullscreen(null)}
+              onOpenContact={() => setShowContactModal(true)}
             />
           </div>
         );
       })()}
+
+      {/* Модальное окно формы заявки */}
+      {showContactModal && (
+        <div
+          onClick={() => setShowContactModal(false)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            zIndex: 2000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              padding: '30px',
+              maxWidth: '500px',
+              width: '100%',
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
+            }}
+          >
+            <h2 style={{
+              fontSize: '24px',
+              fontWeight: 'bold',
+              marginBottom: '20px',
+              textAlign: 'center',
+            }}>
+              Узнать стоимость
+            </h2>
+            <form onSubmit={handleSubmitContactForm}>
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{
+                  display: 'block',
+                  marginBottom: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#333',
+                }}>
+                  Имя *
+                </label>
+                <input
+                  type="text"
+                  value={contactForm.name}
+                  onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
+                  required
+                  disabled={contactSubmitting}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    fontSize: '16px',
+                    border: '1px solid #ddd',
+                    borderRadius: '8px',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{
+                  display: 'block',
+                  marginBottom: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#333',
+                }}>
+                  Телефон *
+                </label>
+                <input
+                  type="tel"
+                  value={contactForm.phone}
+                  onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })}
+                  required
+                  disabled={contactSubmitting}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    fontSize: '16px',
+                    border: '1px solid #ddd',
+                    borderRadius: '8px',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+              <div style={{ marginBottom: '24px' }}>
+                <label style={{
+                  display: 'block',
+                  marginBottom: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#333',
+                }}>
+                  Комментарий
+                </label>
+                <textarea
+                  value={contactForm.comment}
+                  onChange={(e) => setContactForm({ ...contactForm, comment: e.target.value })}
+                  disabled={contactSubmitting}
+                  rows={4}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    fontSize: '16px',
+                    border: '1px solid #ddd',
+                    borderRadius: '8px',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                    resize: 'vertical',
+                    fontFamily: 'inherit',
+                  }}
+                />
+              </div>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button
+                  type="submit"
+                  disabled={contactSubmitting}
+                  style={{
+                    flex: 1,
+                    padding: '14px',
+                    fontSize: '16px',
+                    fontWeight: '500',
+                    backgroundColor: contactSubmitting ? '#999' : '#485B78',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: contactSubmitting ? 'wait' : 'pointer',
+                    opacity: contactSubmitting ? 0.6 : 1,
+                  }}
+                >
+                  {contactSubmitting ? 'Отправка...' : 'Отправить'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowContactModal(false)}
+                  disabled={contactSubmitting}
+                  style={{
+                    padding: '14px 24px',
+                    fontSize: '16px',
+                    fontWeight: '500',
+                    backgroundColor: '#999',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: contactSubmitting ? 'wait' : 'pointer',
+                    opacity: contactSubmitting ? 0.6 : 1,
+                  }}
+                >
+                  Отмена
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
     </main>
   );
@@ -1069,16 +1270,19 @@ const FullscreenCarousel = ({
   photos, 
   currentIndex, 
   onIndexChange, 
-  onClose 
+  onClose,
+  onOpenContact
 }: { 
   photos: SitePhoto[]; 
   currentIndex: number;
   onIndexChange: (index: number) => void;
   onClose: () => void;
+  onOpenContact: () => void;
 }) => {
-  const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
+  const [touchEnd, setTouchEnd] = useState<{ x: number; y: number } | null>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [captionExpanded, setCaptionExpanded] = useState(false);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -1088,6 +1292,11 @@ const FullscreenCarousel = ({
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  // Сбрасываем расширение подписи при смене фото
+  useEffect(() => {
+    setCaptionExpanded(false);
+  }, [currentIndex]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -1109,18 +1318,29 @@ const FullscreenCarousel = ({
 
   const onTouchStart = (e: React.TouchEvent) => {
     setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
+    setTouchStart({ x: e.targetTouches[0].clientX, y: e.targetTouches[0].clientY });
   };
 
   const onTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX);
+    setTouchEnd({ x: e.targetTouches[0].clientX, y: e.targetTouches[0].clientY });
   };
 
   const onTouchEnd = () => {
     if (!touchStart || !touchEnd) return;
-    const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > minSwipeDistance;
-    const isRightSwipe = distance < -minSwipeDistance;
+    const deltaX = touchStart.x - touchEnd.x;
+    const deltaY = touchStart.y - touchEnd.y;
+    const absDeltaX = Math.abs(deltaX);
+    const absDeltaY = Math.abs(deltaY);
+    
+    // Если вертикальный свайп больше горизонтального - закрываем
+    if (absDeltaY > absDeltaX && absDeltaY > minSwipeDistance && isMobile) {
+      onClose();
+      return;
+    }
+    
+    // Горизонтальные свайпы
+    const isLeftSwipe = deltaX > minSwipeDistance;
+    const isRightSwipe = deltaX < -minSwipeDistance;
 
     if (isLeftSwipe && currentIndex < photos.length - 1) {
       onIndexChange(currentIndex + 1);
@@ -1195,20 +1415,6 @@ const FullscreenCarousel = ({
                 }}
               />
             </div>
-            {/* Подпись под фото - показываем только если есть caption или несколько фото */}
-            {(photos[currentIndex]?.caption || photos.length > 1) && (
-              <div style={{
-                padding: '15px 20px',
-                color: 'white',
-                textAlign: 'center',
-                fontSize: isMobile ? '14px' : '16px',
-                backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                width: '100%',
-                flexShrink: 0,
-              }}>
-                {photos[currentIndex]?.caption || `Фото ${currentIndex + 1} из ${photos.length}`}
-              </div>
-            )}
           </div>
         ))}
       </div>
@@ -1228,8 +1434,8 @@ const FullscreenCarousel = ({
             width: '50px',
             height: '50px',
             borderRadius: '50%',
-            backgroundColor: 'rgba(255, 255, 255, 0.2)',
-            color: 'white',
+            backgroundColor: 'rgba(0, 0, 0, 0.1)',
+            color: '#333',
             border: 'none',
             cursor: 'pointer',
             display: 'flex',
@@ -1258,8 +1464,8 @@ const FullscreenCarousel = ({
             width: '50px',
             height: '50px',
             borderRadius: '50%',
-            backgroundColor: 'rgba(255, 255, 255, 0.2)',
-            color: 'white',
+            backgroundColor: 'rgba(0, 0, 0, 0.1)',
+            color: '#333',
             border: 'none',
             cursor: 'pointer',
             display: 'flex',
@@ -1273,53 +1479,143 @@ const FullscreenCarousel = ({
         </button>
       )}
 
-      {/* Точки-индикаторы (только на десктопе, на мобильных подпись показывает номер) */}
-      {photos.length > 1 && !isMobile && (
-        <div style={{
-          position: 'absolute',
-          bottom: '30px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          display: 'flex',
-          gap: '10px',
-          zIndex: 1002,
-        }}>
-          {photos.map((_, index) => (
-            <button
-              key={index}
-              onClick={(e) => {
-                e.stopPropagation();
-                onIndexChange(index);
-              }}
-              style={{
-                width: '12px',
-                height: '12px',
-                borderRadius: '50%',
-                border: 'none',
-                backgroundColor: index === currentIndex ? '#fff' : 'rgba(255, 255, 255, 0.5)',
-                cursor: 'pointer',
-                transition: 'background-color 0.2s',
-                padding: 0,
-              }}
-            />
-          ))}
-        </div>
-      )}
+      {/* Кнопки в полноэкранном режиме */}
+      <div style={{
+        position: 'absolute',
+        top: '20px',
+        left: '20px',
+        display: 'flex',
+        gap: '10px',
+        zIndex: 1002,
+      }}>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpenContact();
+          }}
+          style={{
+            width: '40px',
+            height: '40px',
+            borderRadius: '50%',
+            backgroundColor: 'rgba(0, 0, 0, 0.1)',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '20px',
+          }}
+          title="Связаться"
+        >
+          💬
+        </button>
+        <a
+          href="tel:+79991234567"
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            width: '40px',
+            height: '40px',
+            borderRadius: '50%',
+            backgroundColor: 'rgba(0, 0, 0, 0.1)',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '20px',
+            textDecoration: 'none',
+            color: 'inherit',
+          }}
+          title="Позвонить"
+        >
+          📞
+        </a>
+      </div>
 
-      {/* Счетчик (только на десктопе, на мобильных подпись показывает номер) */}
-      {!isMobile && (
-        <div style={{
-          position: 'absolute',
-          top: '30px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          color: 'white',
-          fontSize: '18px',
-          zIndex: 1002,
-        }}>
-          {currentIndex + 1} / {photos.length}
-        </div>
-      )}
+      {/* Контейнер для подписи и индикаторов */}
+      <div style={{
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        zIndex: 1002,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+      }}>
+        {/* Индикатор карусели (точки) - под фото, над текстом */}
+        {photos.length > 1 && (
+          <div style={{
+            display: 'flex',
+            gap: '8px',
+            marginBottom: '10px',
+          }}>
+            {photos.map((_, index) => (
+              <button
+                key={index}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onIndexChange(index);
+                }}
+                style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  border: 'none',
+                  backgroundColor: index === currentIndex ? '#485B78' : 'rgba(72, 91, 120, 0.3)',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s',
+                  padding: 0,
+                }}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Подпись под фото */}
+        {(() => {
+          const currentCaption = photos[currentIndex]?.caption;
+          const displayText = currentCaption || `Фото ${currentIndex + 1} из ${photos.length}`;
+          const shouldTruncate = displayText.length > 20;
+          const truncatedText = shouldTruncate && !captionExpanded 
+            ? displayText.substring(0, 20) + '...' 
+            : displayText;
+
+          return (
+            <div style={{
+              padding: '15px 20px',
+              color: '#000',
+              textAlign: 'center',
+              fontSize: isMobile ? '14px' : '16px',
+              backgroundColor: '#fff',
+              width: '100%',
+              flexShrink: 0,
+              boxSizing: 'border-box',
+            }}>
+              {truncatedText}
+              {shouldTruncate && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCaptionExpanded(!captionExpanded);
+                  }}
+                  style={{
+                    marginLeft: '8px',
+                    color: '#485B78',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                    fontSize: 'inherit',
+                  }}
+                >
+                  {captionExpanded ? 'меньше' : 'ещё'}
+                </button>
+              )}
+            </div>
+          );
+        })()}
+      </div>
     </div>
   );
 };
