@@ -44,8 +44,9 @@ ENV NEXT_TELEMETRY_DISABLED 1
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Копируем публичные файлы (если директория существует и не пуста)
-COPY --from=builder /app/public* ./public/ 2>/dev/null || mkdir -p ./public
+# Создаем директорию public и копируем файлы (если есть)
+RUN mkdir -p ./public
+COPY --from=builder /app/public ./public
 
 # Копируем собранное приложение
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
