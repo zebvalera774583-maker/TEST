@@ -1727,7 +1727,9 @@ const FullscreenCarousel = ({
       {photos.length > 1 && index > 0 && (
         <button
           onClick={(e) => {
+            e.preventDefault();
             e.stopPropagation();
+            console.log('Left arrow clicked, current index:', index);
             handleIndexChange(index - 1);
           }}
           style={{
@@ -1757,7 +1759,9 @@ const FullscreenCarousel = ({
       {photos.length > 1 && index < photos.length - 1 && (
         <button
           onClick={(e) => {
+            e.preventDefault();
             e.stopPropagation();
+            console.log('Right arrow clicked, current index:', index);
             handleIndexChange(index + 1);
           }}
           style={{
