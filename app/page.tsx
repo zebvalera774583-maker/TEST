@@ -500,12 +500,11 @@ export default function Home() {
         {/* Статистика вровень с верхом аватара */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: isAdmin ? 'repeat(3, auto) auto' : 'repeat(3, auto)',
+          gridTemplateColumns: 'repeat(3, auto)',
           gap: '24px',
           flex: 1,
           alignSelf: 'flex-start',
           justifyContent: 'flex-end',
-          alignItems: 'center',
         }}>
           <div style={{ 
             fontSize: '14px', 
@@ -584,6 +583,31 @@ export default function Home() {
           Москва - Питер - Сочи - Краснодар
         </div>
       </div>
+
+      {/* Гамбургер-меню для админа (после городов, перед кнопкой загрузки) */}
+      {isAdmin && (
+        <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'flex-end' }}>
+          <AdminMenu
+            isOpen={adminMenuOpen}
+            onToggle={() => setAdminMenuOpen(!adminMenuOpen)}
+            items={[
+              {
+                id: 'requests',
+                label: 'Заявки',
+                icon: '📋',
+                onClick: () => setShowContactRequests(true),
+              },
+              // Здесь можно легко добавлять новые пункты меню
+              // {
+              //   id: 'settings',
+              //   label: 'Настройки',
+              //   icon: '⚙️',
+              //   onClick: () => console.log('Настройки'),
+              // },
+            ]}
+          />
+        </div>
+      )}
 
       {/* Кнопка загрузки фото (только для админа) - синяя кнопка как раньше */}
       {isAdmin && (
