@@ -1642,93 +1642,9 @@ const FullscreenCarousel = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [index, photosLength, onClose, handleIndexChange]);
 
-  const onPointerDown = (e: React.PointerEvent) => {
-    if (animating) return;
-    
-    // Игнорируем, если это клик по кнопке или другому интерактивному элементу
-    const target = e.target as HTMLElement;
-    if (target.tagName === 'BUTTON' || target.closest('button')) {
-      return;
-    }
-    
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    
-    stateRef.current.pointerId = e.pointerId;
-    stateRef.current.startX = e.clientX;
-    stateRef.current.startY = e.clientY;
-    stateRef.current.axis = null;
-    stateRef.current.active = true;
-    setDragY(0);
-  };
-
-  const onPointerMove = (e: React.PointerEvent) => {
-    if (!stateRef.current.active) return;
-    if (e.pointerId !== stateRef.current.pointerId) return;
-
-    const dx = e.clientX - stateRef.current.startX;
-    const dy = e.clientY - stateRef.current.startY;
-
-    // axis lock после небольшого движения
-    if (!stateRef.current.axis) {
-      const adx = Math.abs(dx);
-      const ady = Math.abs(dy);
-      if (adx < 8 && ady < 8) return;
-      stateRef.current.axis = adx > ady ? 'x' : 'y';
-    }
-
-    if (stateRef.current.axis === 'y') {
-      // КРИТИЧНО: preventDefault для блокировки нативного скролла на iOS
-      // Важно вызывать preventDefault() при pointermove, иначе на iOS уедет страница
-      // В React обработчики не passive по умолчанию, но лучше явно указать
-      e.preventDefault();
-      const limited = clamp(dy, -220, 220);
-      setDragY(limited);
-    } else {
-      // X-ось: горизонтальная навигация (свайп влево/вправо)
-    }
-  };
-
-  const onPointerUp = async (e: React.PointerEvent) => {
-    if (!stateRef.current.active) return;
-    if (e.pointerId !== stateRef.current.pointerId) return;
-
-    stateRef.current.active = false;
-    
-    // Пересчитываем dy из координат события для актуального значения
-    const dy = e.clientY - stateRef.current.startY;
-    const axis = stateRef.current.axis;
-
-    stateRef.current.axis = null;
-    stateRef.current.pointerId = -1;
-
-    if (axis === 'y') {
-      // Порог: если abs(dy) >= 60 и axis === "y"
-      // dy > 0 → палец движется вниз → следующий пост (next)
-      // dy < 0 → палец движется вверх → предыдущий пост (prev)
-      // Иначе вернуть translateY в 0
-      if (Math.abs(dy) >= 60) {
-        await commitVerticalSwipe(dy > 0 ? 'next' : 'prev');
-      } else {
-        setDragY(0);
-      }
-    } else if (axis === 'x') {
-      // Горизонтальная навигация
-      const dx = e.clientX - stateRef.current.startX;
-      const minSwipeDistance = 50;
-      if (Math.abs(dx) > minSwipeDistance) {
-        if (dx > 0 && index > 0) {
-          handleIndexChange(index - 1);
-        } else if (dx < 0 && index < photos.length - 1) {
-          handleIndexChange(index + 1);
-        }
-      }
-      setDragY(0);
-    } else {
-      // Если ось не определена, просто сбрасываем
-      setDragY(0);
-    }
-  };
-
+  // =========================
+  // 10) JSX (ниже — разметка)
+  // =========================
   // Ширина одного фото (100% на мобильных, 80% на десктопе)
   const photoWidth = isMobile ? '100%' : '80%';
   const gap = isMobile ? '0%' : '2%';
