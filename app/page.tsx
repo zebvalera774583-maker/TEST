@@ -1369,12 +1369,13 @@ const FullscreenCarousel = ({
 
   // Обработка прокрутки (wheel) для навигации по вертикали
   useEffect(() => {
-    const handleWheel = (e: WheelEvent) => {
+    const handleWheel = (e: Event) => {
+      const wheelEvent = e as WheelEvent;
       // Предотвращаем стандартную прокрутку страницы
-      e.preventDefault();
+      wheelEvent.preventDefault();
       
       const columnsPerRow = 3;
-      const deltaY = e.deltaY;
+      const deltaY = wheelEvent.deltaY;
       
       // Прокрутка вниз (deltaY > 0) → переход на фото ниже
       if (deltaY > 0 && currentIndex + columnsPerRow < photos.length) {
@@ -1386,8 +1387,7 @@ const FullscreenCarousel = ({
       }
     };
 
-    // Добавляем обработчик на контейнер карусели
-    const carouselElement = document.querySelector('[data-fullscreen-carousel]');
+    const carouselElement = carouselRef.current;
     if (carouselElement) {
       carouselElement.addEventListener('wheel', handleWheel, { passive: false });
       return () => {
