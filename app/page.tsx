@@ -1440,16 +1440,19 @@ const FullscreenCarousel = ({
     // Останавливаем всплытие, чтобы Pointer Events не обрабатывали это как свайп
     e.stopPropagation();
     
-    // Прокрутка вниз (deltaY > 0) → следующий фото (index + 1)
+    // Используем ту же логику, что и в commitVerticalSwipe: 3 колонки в сетке
+    const columnsPerRow = 3;
+    
+    // Прокрутка вниз (deltaY > 0) → фото ниже в сетке (index + columnsPerRow)
     if (e.deltaY > 0) {
-      const newIndex = index + 1;
+      const newIndex = index + columnsPerRow;
       if (newIndex < photos.length) {
         handleIndexChange(newIndex);
       }
     }
-    // Прокрутка вверх (deltaY < 0) → предыдущий фото (index - 1)
+    // Прокрутка вверх (deltaY < 0) → фото выше в сетке (index - columnsPerRow)
     else {
-      const newIndex = index - 1;
+      const newIndex = index - columnsPerRow;
       if (newIndex >= 0) {
         handleIndexChange(newIndex);
       }
