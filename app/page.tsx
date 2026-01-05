@@ -1332,11 +1332,30 @@ const FullscreenCarousel = ({
   onClose: () => void;
   onOpenContact: () => void;
 }) => {
-  const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
-  const [touchEnd, setTouchEnd] = useState<{ x: number; y: number } | null>(null);
+  const [index, setIndex] = useState(currentIndex);
+  const [dragY, setDragY] = useState(0);
+  const [animating, setAnimating] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [captionExpanded, setCaptionExpanded] = useState(false);
-  const carouselRef = useRef<HTMLDivElement>(null);
+  
+  const stateRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    axis: null | 'x' | 'y';
+    active: boolean;
+  }>({
+    pointerId: -1,
+    startX: 0,
+    startY: 0,
+    axis: null,
+    active: false,
+  });
+
+  // Синхронизируем внутренний индекс с внешним
+  useEffect(() => {
+    setIndex(currentIndex);
+  }, [currentIndex]);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -1347,17 +1366,26 @@ const FullscreenCarousel = ({
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // Блокируем нативный скролл при открытом viewer
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
+
   // Сбрасываем расширение подписи при смене фото
   useEffect(() => {
     setCaptionExpanded(false);
-  }, [currentIndex]);
+  }, [index]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowLeft' && currentIndex > 0) {
-        onIndexChange(currentIndex - 1);
-      } else if (e.key === 'ArrowRight' && currentIndex < photos.length - 1) {
-        onIndexChange(currentIndex + 1);
+      if (e.key === 'ArrowLeft' && index > 0) {
+        handleIndexChange(index - 1);
+      } else if (e.key === 'ArrowRight' && index < photos.length - 1) {
+        handleIndexChange(index + 1);
       } else if (e.key === 'Escape') {
         onClose();
       }
@@ -1365,90 +1393,139 @@ const FullscreenCarousel = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentIndex, photos.length, onClose, onIndexChange]);
+  }, [index, photos.length, onClose]);
 
   // Обработчик прокрутки (wheel) для навигации по вертикали
   const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
-    // Предотвращаем стандартную прокрутку страницы
     e.preventDefault();
-    
     const columnsPerRow = 3;
     const deltaY = e.deltaY;
     
-    // Прокрутка вниз (deltaY > 0) → переход на фото ниже
-    if (deltaY > 0 && currentIndex + columnsPerRow < photos.length) {
-      onIndexChange(currentIndex + columnsPerRow);
-    }
-    // Прокрутка вверх (deltaY < 0) → переход на фото выше
-    else if (deltaY < 0 && currentIndex - columnsPerRow >= 0) {
-      onIndexChange(currentIndex - columnsPerRow);
+    if (deltaY > 0 && index + columnsPerRow < photos.length) {
+      handleVerticalNavigation('next', columnsPerRow);
+    } else if (deltaY < 0 && index - columnsPerRow >= 0) {
+      handleVerticalNavigation('prev', columnsPerRow);
     }
   };
 
-  // Обработка свайпов
-  const minSwipeDistance = 50;
-
-  const onTouchStart = (e: React.TouchEvent) => {
-    const touch = e.touches[0];
-    setTouchEnd(null);
-    setTouchStart({ x: touch.clientX, y: touch.clientY });
+  const handleIndexChange = (newIndex: number) => {
+    setIndex(newIndex);
+    onIndexChange(newIndex);
   };
 
-  const onTouchMove = (e: React.TouchEvent) => {
-    if (e.touches.length > 0) {
-      const touch = e.touches[0];
-      setTouchEnd({ x: touch.clientX, y: touch.clientY });
-    }
-  };
+  const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
 
-  const onTouchEnd = () => {
-    if (!touchStart || !touchEnd) {
-      setTouchStart(null);
-      setTouchEnd(null);
+  const handleVerticalNavigation = async (direction: 'prev' | 'next', columnsPerRow: number) => {
+    if (animating) return;
+    
+    const newIndex = direction === 'next' ? index + columnsPerRow : index - columnsPerRow;
+    if (newIndex < 0 || newIndex >= photos.length) {
+      setDragY(0);
       return;
     }
-    
-    const deltaX = touchStart.x - touchEnd.x;
-    const deltaY = touchStart.y - touchEnd.y;
-    const absDeltaX = Math.abs(deltaX);
-    const absDeltaY = Math.abs(deltaY);
-    
-    // Вертикальные свайпы для перехода на соседние фото из сетки (3 колонки)
-    const columnsPerRow = 3;
-    if (absDeltaY > absDeltaX && absDeltaY > minSwipeDistance) {
-      // Свайп вниз: touchEnd.y > touchStart.y (палец движется вниз) = deltaY < 0
-      if (deltaY < 0 && currentIndex + columnsPerRow < photos.length) {
-        onIndexChange(currentIndex + columnsPerRow);
-        setTouchStart(null);
-        setTouchEnd(null);
-        return;
-      }
-      // Свайп вверх: touchEnd.y < touchStart.y (палец движется вверх) = deltaY > 0
-      if (deltaY > 0 && currentIndex - columnsPerRow >= 0) {
-        onIndexChange(currentIndex - columnsPerRow);
-        setTouchStart(null);
-        setTouchEnd(null);
-        return;
-      }
-    }
-    
-    // Горизонтальные свайпы (только если не было вертикального свайпа)
-    if (absDeltaX > absDeltaY && absDeltaX > minSwipeDistance) {
-      const isLeftSwipe = deltaX > minSwipeDistance;
-      const isRightSwipe = deltaX < -minSwipeDistance;
 
-      if (isLeftSwipe && currentIndex < photos.length - 1) {
-        onIndexChange(currentIndex + 1);
-      }
-      if (isRightSwipe && currentIndex > 0) {
-        onIndexChange(currentIndex - 1);
-      }
-      setTouchStart(null);
-      setTouchEnd(null);
+    setAnimating(true);
+    setDragY(direction === 'next' ? 160 : -160);
+    await new Promise((r) => setTimeout(r, 140));
+    
+    handleIndexChange(newIndex);
+    setDragY(0);
+    await new Promise((r) => setTimeout(r, 80));
+    setAnimating(false);
+  };
+
+  const commitVerticalSwipe = async (direction: 'prev' | 'next') => {
+    if (animating) return;
+    
+    const columnsPerRow = 3;
+    const newIndex = direction === 'next' ? index + columnsPerRow : index - columnsPerRow;
+    
+    if (direction === 'prev' && newIndex < 0) {
+      setDragY(0);
+      return;
+    }
+    if (direction === 'next' && newIndex >= photos.length) {
+      setDragY(0);
+      return;
+    }
+
+    setAnimating(true);
+    setDragY(direction === 'next' ? 160 : -160);
+    await new Promise((r) => setTimeout(r, 140));
+    
+    handleIndexChange(newIndex);
+    setDragY(0);
+    await new Promise((r) => setTimeout(r, 80));
+    setAnimating(false);
+  };
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    if (animating) return;
+    
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    
+    stateRef.current.pointerId = e.pointerId;
+    stateRef.current.startX = e.clientX;
+    stateRef.current.startY = e.clientY;
+    stateRef.current.axis = null;
+    stateRef.current.active = true;
+    setDragY(0);
+  };
+
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (!stateRef.current.active) return;
+    if (e.pointerId !== stateRef.current.pointerId) return;
+
+    const dx = e.clientX - stateRef.current.startX;
+    const dy = e.clientY - stateRef.current.startY;
+
+    // axis lock после небольшого движения
+    if (!stateRef.current.axis) {
+      const adx = Math.abs(dx);
+      const ady = Math.abs(dy);
+      if (adx < 8 && ady < 8) return;
+      stateRef.current.axis = adx > ady ? 'x' : 'y';
+    }
+
+    if (stateRef.current.axis === 'y') {
+      // КРИТИЧНО: preventDefault для блокировки нативного скролла на iOS
+      e.preventDefault();
+      const limited = clamp(dy, -220, 220);
+      setDragY(limited);
     } else {
-      // Сбрасываем состояние, если свайп не распознан
-      setTouchStart(null);
-      setTouchEnd(null);
+      // X-ось: горизонтальная навигация (оставляем для будущей реализации)
+    }
+  };
+
+  const onPointerUp = async (e: React.PointerEvent) => {
+    if (!stateRef.current.active) return;
+    if (e.pointerId !== stateRef.current.pointerId) return;
+
+    stateRef.current.active = false;
+    const dy = dragY;
+    const axis = stateRef.current.axis;
+
+    stateRef.current.axis = null;
+    stateRef.current.pointerId = -1;
+
+    if (axis === 'y') {
+      if (Math.abs(dy) >= 60) {
+        await commitVerticalSwipe(dy > 0 ? 'next' : 'prev');
+      } else {
+        setDragY(0);
+      }
+    } else if (axis === 'x') {
+      // Горизонтальная навигация
+      const dx = e.clientX - stateRef.current.startX;
+      const minSwipeDistance = 50;
+      if (Math.abs(dx) > minSwipeDistance) {
+        if (dx > 0 && index > 0) {
+          handleIndexChange(index - 1);
+        } else if (dx < 0 && index < photos.length - 1) {
+          handleIndexChange(index + 1);
+        }
+      }
+      setDragY(0);
     }
   };
 
@@ -1458,20 +1535,32 @@ const FullscreenCarousel = ({
 
   return (
     <div
-      ref={carouselRef}
-      onClick={(e) => e.stopPropagation()}
-      onTouchStart={onTouchStart}
-      onTouchMove={onTouchMove}
-      onTouchEnd={onTouchEnd}
+      role="dialog"
+      aria-modal="true"
+      onClick={(e) => {
+        // клик по фону закрывает
+        if (e.target === e.currentTarget) onClose();
+      }}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
       onWheel={handleWheel}
+      onTouchMove={(e) => {
+        // КРИТИЧНО: fallback для iOS - если touch-action не сработал
+        e.preventDefault();
+      }}
       style={{
-        position: 'relative',
-        width: '100%',
-        height: '100%',
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(255, 255, 255, 0.95)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         overflow: 'hidden',
+        // КРИТИЧНО для мобилы: блокируем нативный скролл
+        touchAction: 'none',
+        zIndex: 1000,
       }}
     >
       {/* Кнопка "назад" в левом верхнем углу (как в Instagram) */}
@@ -1502,62 +1591,69 @@ const FullscreenCarousel = ({
       >
         ‹
       </button>
-      {/* Контейнер изображений с видимыми частями соседних */}
-      <div style={{
-        display: 'flex',
-        transform: isMobile 
-          ? `translateX(-${currentIndex * 100}%)`
-          : `translateX(calc(-${currentIndex} * (${photoWidth} + ${gap}) + (100% - ${photoWidth}) / 2))`,
-        transition: 'transform 0.3s ease',
-        height: '100%',
-        gap: gap,
-        alignItems: 'stretch',
-        paddingTop: '80px', // Отступ сверху, чтобы фото не выходило за зону стрелки
-      }}>
-        {photos.map((photo, index) => (
-          <div
-            key={photo.id}
-            style={{
-              minWidth: photoWidth,
-              width: photoWidth,
-              flexShrink: 0,
-              height: 'calc(100% - 80px)', // Вычитаем отступ сверху
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              overflow: 'hidden',
-            }}
-          >
-            <div style={{
-              flex: '1 1 auto',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '100%',
-              minHeight: 0,
-            }}>
+      {/* Контейнер изображения с анимацией вертикального свайпа */}
+      <div
+        style={{
+          transform: `translateY(${dragY}px)`,
+          transition: stateRef.current.active ? 'none' : 'transform 160ms ease',
+          maxWidth: '96vw',
+          maxHeight: '92vh',
+          paddingTop: '80px', // Отступ сверху для кнопки "назад"
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <div style={{
+          display: 'flex',
+          transform: isMobile 
+            ? `translateX(-${index * 100}%)`
+            : `translateX(calc(-${index} * (${photoWidth} + ${gap}) + (100% - ${photoWidth}) / 2))`,
+          transition: stateRef.current.active && stateRef.current.axis === 'y' ? 'none' : 'transform 0.3s ease',
+          height: 'calc(92vh - 80px)',
+          gap: gap,
+          alignItems: 'stretch',
+          width: '100%',
+        }}>
+          {photos.map((photo, photoIndex) => (
+            <div
+              key={photo.id}
+              style={{
+                minWidth: photoWidth,
+                width: photoWidth,
+                flexShrink: 0,
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                overflow: 'hidden',
+              }}
+            >
               <img
                 src={photo.public_url}
-                alt={`Photo ${index + 1}`}
+                alt={`Photo ${photoIndex + 1}`}
                 style={{
                   maxWidth: '100%',
                   maxHeight: '100%',
                   objectFit: 'contain',
                   display: 'block',
+                  userSelect: 'none',
+                  pointerEvents: 'none',
                 }}
+                draggable={false}
               />
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
       {/* Стрелка влево */}
-      {photos.length > 1 && currentIndex > 0 && (
+      {photos.length > 1 && index > 0 && (
         <button
           onClick={(e) => {
             e.stopPropagation();
-            onIndexChange(currentIndex - 1);
+            handleIndexChange(index - 1);
           }}
           style={{
             position: 'absolute',
@@ -1583,11 +1679,11 @@ const FullscreenCarousel = ({
       )}
 
       {/* Стрелка вправо */}
-      {photos.length > 1 && currentIndex < photos.length - 1 && (
+      {photos.length > 1 && index < photos.length - 1 && (
         <button
           onClick={(e) => {
             e.stopPropagation();
-            onIndexChange(currentIndex + 1);
+            handleIndexChange(index + 1);
           }}
           style={{
             position: 'absolute',
@@ -1678,19 +1774,19 @@ const FullscreenCarousel = ({
             gap: '4px',
             marginBottom: '8px',
           }}>
-            {photos.map((_, index) => (
+            {photos.map((_, photoIndex) => (
               <button
-                key={index}
+                key={photoIndex}
                 onClick={(e) => {
                   e.stopPropagation();
-                  onIndexChange(index);
+                  handleIndexChange(photoIndex);
                 }}
                 style={{
                   width: '4px',
                   height: '4px',
                   borderRadius: '50%',
                   border: 'none',
-                  backgroundColor: index === currentIndex ? 'rgba(72, 91, 120, 0.6)' : 'rgba(72, 91, 120, 0.2)',
+                  backgroundColor: photoIndex === index ? 'rgba(72, 91, 120, 0.6)' : 'rgba(72, 91, 120, 0.2)',
                   cursor: 'pointer',
                   transition: 'background-color 0.2s',
                   padding: 0,
@@ -1702,8 +1798,8 @@ const FullscreenCarousel = ({
 
         {/* Подпись под фото */}
         {(() => {
-          const currentCaption = photos[currentIndex]?.caption;
-          const displayText = currentCaption || `Фото ${currentIndex + 1} из ${photos.length}`;
+          const currentCaption = photos[index]?.caption;
+          const displayText = currentCaption || `Фото ${index + 1} из ${photos.length}`;
           const shouldTruncate = displayText.length > 20;
           const truncatedText = shouldTruncate && !captionExpanded 
             ? displayText.substring(0, 20) + '...' 
