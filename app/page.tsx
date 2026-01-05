@@ -1420,12 +1420,28 @@ const FullscreenCarousel = ({
     onIndexChange(newIndex);
   }, [onIndexChange]);
 
+  // Используем ref для хранения актуальных значений
+  const indexRef = useRef(index);
+  const photosLengthRef = useRef(photos.length);
+  const animatingRef = useRef(animating);
+  
+  useEffect(() => {
+    indexRef.current = index;
+    photosLengthRef.current = photos.length;
+    animatingRef.current = animating;
+  }, [index, photos.length, animating]);
+
   // Обработчик wheel на window - более надежный подход
   useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
+      console.log('Wheel event detected!', { deltaY: e.deltaY, clientX: e.clientX, clientY: e.clientY });
+      
       // Проверяем, что курсор над каруселью
       const carouselElement = carouselRef.current;
-      if (!carouselElement) return;
+      if (!carouselElement) {
+        console.log('No carousel element');
+        return;
+      }
       
       const rect = carouselElement.getBoundingClientRect();
       const isOverCarousel = (
@@ -1435,40 +1451,63 @@ const FullscreenCarousel = ({
         e.clientY <= rect.bottom
       );
       
+      console.log('Is over carousel:', isOverCarousel, { rect, clientX: e.clientX, clientY: e.clientY });
+      
       if (!isOverCarousel) return;
       
       e.preventDefault();
       e.stopPropagation();
       
-      if (animating) return;
+      if (animatingRef.current) {
+        console.log('Blocked: animating');
+        return;
+      }
       
       const columnsPerRow = 3;
       const threshold = 30;
       
-      if (Math.abs(e.deltaY) < threshold) return;
+      if (Math.abs(e.deltaY) < threshold) {
+        console.log('Blocked: threshold too small', Math.abs(e.deltaY));
+        return;
+      }
+      
+      const currentIndex = indexRef.current;
+      const currentPhotosLength = photosLengthRef.current;
+      
+      console.log('Processing wheel:', { currentIndex, currentPhotosLength, deltaY: e.deltaY });
       
       // Прокрутка вниз (deltaY > 0) → переход на фото ниже
       if (e.deltaY > 0) {
-        const newIndex = index + columnsPerRow;
-        if (newIndex < photos.length) {
+        const newIndex = currentIndex + columnsPerRow;
+        console.log('Wheel down: trying', currentIndex, '->', newIndex);
+        if (newIndex < currentPhotosLength) {
           handleIndexChange(newIndex);
+          console.log('Changed to', newIndex);
+        } else {
+          console.log('Cannot go down: at end');
         }
       }
       // Прокрутка вверх (deltaY < 0) → переход на фото выше
       else {
-        const newIndex = index - columnsPerRow;
+        const newIndex = currentIndex - columnsPerRow;
+        console.log('Wheel up: trying', currentIndex, '->', newIndex);
         if (newIndex >= 0) {
           handleIndexChange(newIndex);
+          console.log('Changed to', newIndex);
+        } else {
+          console.log('Cannot go up: at start');
         }
       }
     };
 
     // Добавляем обработчик на window с { passive: false }
     window.addEventListener('wheel', handleWheel, { passive: false });
+    console.log('Wheel listener added to window');
     return () => {
       window.removeEventListener('wheel', handleWheel);
+      console.log('Wheel listener removed from window');
     };
-  }, [index, photos.length, animating, handleIndexChange]);
+  }, [handleIndexChange]);
 
   const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
 
