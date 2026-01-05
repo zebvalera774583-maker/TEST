@@ -897,33 +897,6 @@ export default function Home() {
             }}
             tabIndex={0}
           >
-            {/* Кнопка закрытия */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setOpenFullscreen(null);
-              }}
-              style={{
-                position: 'absolute',
-                top: '20px',
-                right: '20px',
-                width: '40px',
-                height: '40px',
-                borderRadius: '50%',
-                backgroundColor: 'rgba(0, 0, 0, 0.1)',
-                color: '#333',
-                border: 'none',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '24px',
-                zIndex: 1001,
-              }}
-            >
-              ×
-            </button>
-
             {/* Карусель в полном размере */}
             <FullscreenCarousel 
               photos={group.photos}
@@ -1489,14 +1462,14 @@ const FullscreenCarousel = ({
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'flex-start',
-        padding: '15px 20px',
+        padding: '10px 16px',
         backgroundColor: '#fff',
       }}>
         {/* Кнопки телефона и сообщения - под фото, над текстом */}
         <div style={{
           display: 'flex',
           gap: '15px',
-          marginBottom: '10px',
+          marginBottom: '8px',
         }}>
           <button
             onClick={(e) => {
@@ -1542,8 +1515,8 @@ const FullscreenCarousel = ({
         {photos.length > 1 && (
           <div style={{
             display: 'flex',
-            gap: '6px',
-            marginBottom: '12px',
+            gap: '4px',
+            marginBottom: '8px',
           }}>
             {photos.map((_, index) => (
               <button
@@ -1553,11 +1526,11 @@ const FullscreenCarousel = ({
                   onIndexChange(index);
                 }}
                 style={{
-                  width: '6px',
-                  height: '6px',
+                  width: '4px',
+                  height: '4px',
                   borderRadius: '50%',
                   border: 'none',
-                  backgroundColor: index === currentIndex ? '#485B78' : '#ccc',
+                  backgroundColor: index === currentIndex ? 'rgba(72, 91, 120, 0.6)' : 'rgba(72, 91, 120, 0.2)',
                   cursor: 'pointer',
                   transition: 'background-color 0.2s',
                   padding: 0,
