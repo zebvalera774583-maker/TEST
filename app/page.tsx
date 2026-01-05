@@ -1355,6 +1355,7 @@ const FullscreenCarousel = ({
   const [animating, setAnimating] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [captionExpanded, setCaptionExpanded] = useState(false);
+  const carouselRef = useRef<HTMLDivElement>(null);
   
   const stateRef = useRef<{
     pointerId: number;
@@ -1414,50 +1415,46 @@ const FullscreenCarousel = ({
   }, [index, photos.length, onClose]);
 
   // Обработчик прокрутки (wheel) для навигации по вертикали
-  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    // Отладка: проверяем, срабатывает ли обработчик
-    console.log('Wheel event:', { deltaY: e.deltaY, animating, index, photosLength: photos.length });
-    
-    if (animating) {
-      console.log('Wheel blocked: animating');
-      return;
-    }
-    
-    const columnsPerRow = 3;
-    const threshold = 30; // Уменьшили порог для более чувствительной прокрутки
-    
-    // Игнорируем маленькие прокрутки
-    if (Math.abs(e.deltaY) < threshold) {
-      console.log('Wheel ignored: too small', Math.abs(e.deltaY));
-      return;
-    }
-    
-    // Прокрутка вниз (deltaY > 0) → переход на фото ниже
-    if (e.deltaY > 0) {
-      const newIndex = index + columnsPerRow;
-      console.log('Wheel down: trying to go from', index, 'to', newIndex);
-      if (newIndex < photos.length) {
-        handleIndexChange(newIndex);
-        console.log('Wheel: changed to index', newIndex);
-      } else {
-        console.log('Wheel: cannot go down, already at end');
+  // Используем useEffect с addEventListener для явного указания { passive: false }
+  useEffect(() => {
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      if (animating) return;
+      
+      const columnsPerRow = 3;
+      const threshold = 30;
+      
+      // Игнорируем маленькие прокрутки
+      if (Math.abs(e.deltaY) < threshold) return;
+      
+      // Прокрутка вниз (deltaY > 0) → переход на фото ниже
+      if (e.deltaY > 0) {
+        const newIndex = index + columnsPerRow;
+        // Проверяем, что новый индекс не выходит за границы (photos.length - 1 - максимальный индекс)
+        if (newIndex < photos.length) {
+          handleIndexChange(newIndex);
+        }
       }
-    }
-    // Прокрутка вверх (deltaY < 0) → переход на фото выше
-    else {
-      const newIndex = index - columnsPerRow;
-      console.log('Wheel up: trying to go from', index, 'to', newIndex);
-      if (newIndex >= 0) {
-        handleIndexChange(newIndex);
-        console.log('Wheel: changed to index', newIndex);
-      } else {
-        console.log('Wheel: cannot go up, already at start');
+      // Прокрутка вверх (deltaY < 0) → переход на фото выше
+      else {
+        const newIndex = index - columnsPerRow;
+        if (newIndex >= 0) {
+          handleIndexChange(newIndex);
+        }
       }
+    };
+
+    const carouselElement = carouselRef.current;
+    if (carouselElement) {
+      // КРИТИЧНО: { passive: false } позволяет вызывать preventDefault()
+      carouselElement.addEventListener('wheel', handleWheel, { passive: false });
+      return () => {
+        carouselElement.removeEventListener('wheel', handleWheel);
+      };
     }
-  };
+  }, [index, photos.length, animating, handleIndexChange]);
 
   const handleIndexChange = (newIndex: number) => {
     setIndex(newIndex);
