@@ -1414,6 +1414,12 @@ const FullscreenCarousel = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [index, photos.length, onClose]);
 
+  // Функция изменения индекса - объявляем ДО использования в useEffect
+  const handleIndexChange = (newIndex: number) => {
+    setIndex(newIndex);
+    onIndexChange(newIndex);
+  };
+
   // Обработчик прокрутки (wheel) для навигации по вертикали
   // Используем useEffect с addEventListener для явного указания { passive: false }
   useEffect(() => {
@@ -1455,11 +1461,6 @@ const FullscreenCarousel = ({
       };
     }
   }, [index, photos.length, animating, handleIndexChange]);
-
-  const handleIndexChange = (newIndex: number) => {
-    setIndex(newIndex);
-    onIndexChange(newIndex);
-  };
 
   const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
 
