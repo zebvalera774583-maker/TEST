@@ -1418,26 +1418,43 @@ const FullscreenCarousel = ({
     e.preventDefault();
     e.stopPropagation();
     
-    if (animating) return;
+    // Отладка: проверяем, срабатывает ли обработчик
+    console.log('Wheel event:', { deltaY: e.deltaY, animating, index, photosLength: photos.length });
+    
+    if (animating) {
+      console.log('Wheel blocked: animating');
+      return;
+    }
     
     const columnsPerRow = 3;
-    const threshold = 50; // Минимальная прокрутка для срабатывания
+    const threshold = 30; // Уменьшили порог для более чувствительной прокрутки
     
     // Игнорируем маленькие прокрутки
-    if (Math.abs(e.deltaY) < threshold) return;
+    if (Math.abs(e.deltaY) < threshold) {
+      console.log('Wheel ignored: too small', Math.abs(e.deltaY));
+      return;
+    }
     
     // Прокрутка вниз (deltaY > 0) → переход на фото ниже
     if (e.deltaY > 0) {
       const newIndex = index + columnsPerRow;
+      console.log('Wheel down: trying to go from', index, 'to', newIndex);
       if (newIndex < photos.length) {
         handleIndexChange(newIndex);
+        console.log('Wheel: changed to index', newIndex);
+      } else {
+        console.log('Wheel: cannot go down, already at end');
       }
     }
     // Прокрутка вверх (deltaY < 0) → переход на фото выше
     else {
       const newIndex = index - columnsPerRow;
+      console.log('Wheel up: trying to go from', index, 'to', newIndex);
       if (newIndex >= 0) {
         handleIndexChange(newIndex);
+        console.log('Wheel: changed to index', newIndex);
+      } else {
+        console.log('Wheel: cannot go up, already at start');
       }
     }
   };
