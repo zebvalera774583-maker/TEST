@@ -1414,60 +1414,40 @@ const FullscreenCarousel = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [index, photos.length, onClose]);
 
-  // Функция изменения индекса - объявляем ДО использования в useEffect
+  // Функция изменения индекса
   const handleIndexChange = useCallback((newIndex: number) => {
     setIndex(newIndex);
     onIndexChange(newIndex);
   }, [onIndexChange]);
 
-  // Обработчик прокрутки (wheel) для навигации по вертикали
-  // Используем useEffect с addEventListener для явного указания { passive: false }
-  useEffect(() => {
-    const handleWheel = (e: WheelEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      
-      const columnsPerRow = 3;
-      const threshold = 30;
-      
-      // Игнорируем маленькие прокрутки
-      if (Math.abs(e.deltaY) < threshold) return;
-      
-      // Используем актуальные значения через замыкание
-      setIndex((currentIndex) => {
-        // Проверяем animating через состояние
-        if (animating) return currentIndex;
-        
-        // Прокрутка вниз (deltaY > 0) → переход на фото ниже
-        if (e.deltaY > 0) {
-          const newIndex = currentIndex + columnsPerRow;
-          if (newIndex < photos.length) {
-            // Вызываем onIndexChange асинхронно, чтобы не блокировать
-            setTimeout(() => onIndexChange(newIndex), 0);
-            return newIndex;
-          }
-        }
-        // Прокрутка вверх (deltaY < 0) → переход на фото выше
-        else {
-          const newIndex = currentIndex - columnsPerRow;
-          if (newIndex >= 0) {
-            setTimeout(() => onIndexChange(newIndex), 0);
-            return newIndex;
-          }
-        }
-        return currentIndex;
-      });
-    };
-
-    const carouselElement = carouselRef.current;
-    if (carouselElement) {
-      // КРИТИЧНО: { passive: false } позволяет вызывать preventDefault()
-      carouselElement.addEventListener('wheel', handleWheel, { passive: false });
-      return () => {
-        carouselElement.removeEventListener('wheel', handleWheel);
-      };
+  // Простой обработчик прокрутки wheel - напрямую в JSX
+  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (animating) return;
+    
+    const columnsPerRow = 3;
+    const threshold = 30;
+    
+    // Игнорируем маленькие прокрутки
+    if (Math.abs(e.deltaY) < threshold) return;
+    
+    // Прокрутка вниз (deltaY > 0) → переход на фото ниже
+    if (e.deltaY > 0) {
+      const newIndex = index + columnsPerRow;
+      if (newIndex < photos.length) {
+        handleIndexChange(newIndex);
+      }
     }
-  }, [photos.length, animating, onIndexChange]);
+    // Прокрутка вверх (deltaY < 0) → переход на фото выше
+    else {
+      const newIndex = index - columnsPerRow;
+      if (newIndex >= 0) {
+        handleIndexChange(newIndex);
+      }
+    }
+  };
 
   const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
 
