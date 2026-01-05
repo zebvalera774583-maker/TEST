@@ -530,28 +530,6 @@ export default function Home() {
             <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '4px' }}>4</div>
             <div style={{ fontSize: '12px', color: '#666' }}>города</div>
           </div>
-          {/* Гамбургер-меню для админа */}
-          {isAdmin && (
-            <AdminMenu
-              isOpen={adminMenuOpen}
-              onToggle={() => setAdminMenuOpen(!adminMenuOpen)}
-              items={[
-                {
-                  id: 'requests',
-                  label: 'Заявки',
-                  icon: '📋',
-                  onClick: () => setShowContactRequests(true),
-                },
-                // Здесь можно легко добавлять новые пункты меню
-                // {
-                //   id: 'settings',
-                //   label: 'Настройки',
-                //   icon: '⚙️',
-                //   onClick: () => console.log('Настройки'),
-                // },
-              ]}
-            />
-          )}
         </div>
       </div>
 
