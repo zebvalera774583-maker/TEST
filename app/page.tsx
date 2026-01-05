@@ -1411,13 +1411,20 @@ const FullscreenCarousel = ({
   // Обработчик прокрутки (wheel) для навигации по вертикали
   const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
     e.preventDefault();
+    if (animating) return;
+    
     const columnsPerRow = 3;
     const deltaY = e.deltaY;
     
+    // Прокрутка вниз (deltaY > 0) → переход на фото ниже
     if (deltaY > 0 && index + columnsPerRow < photos.length) {
-      handleVerticalNavigation('next', columnsPerRow);
-    } else if (deltaY < 0 && index - columnsPerRow >= 0) {
-      handleVerticalNavigation('prev', columnsPerRow);
+      const newIndex = index + columnsPerRow;
+      handleIndexChange(newIndex);
+    }
+    // Прокрутка вверх (deltaY < 0) → переход на фото выше
+    else if (deltaY < 0 && index - columnsPerRow >= 0) {
+      const newIndex = index - columnsPerRow;
+      handleIndexChange(newIndex);
     }
   };
 
