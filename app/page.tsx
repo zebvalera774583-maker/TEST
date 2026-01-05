@@ -611,13 +611,6 @@ export default function Home() {
                 icon: '📋',
                 onClick: () => setShowContactRequests(true),
               },
-              {
-                id: 'logout',
-                label: 'Выйти из админки',
-                icon: '🚪',
-                onClick: handleLogout,
-                danger: true,
-              },
               // Здесь можно легко добавлять новые пункты меню
               // {
               //   id: 'settings',
@@ -1367,21 +1360,24 @@ const FullscreenCarousel = ({
     const absDeltaX = Math.abs(deltaX);
     const absDeltaY = Math.abs(deltaY);
     
-    // Если вертикальный свайп больше горизонтального - закрываем
-    if (absDeltaY > absDeltaX && absDeltaY > minSwipeDistance && isMobile) {
+    // Свайп вниз для закрытия (только на мобильных)
+    // deltaY < 0 означает, что конечная точка ниже начальной (свайп вниз)
+    if (isMobile && absDeltaY > absDeltaX && absDeltaY > minSwipeDistance && deltaY < 0) {
       onClose();
       return;
     }
     
-    // Горизонтальные свайпы
-    const isLeftSwipe = deltaX > minSwipeDistance;
-    const isRightSwipe = deltaX < -minSwipeDistance;
+    // Горизонтальные свайпы (только если не было вертикального свайпа)
+    if (absDeltaX > absDeltaY) {
+      const isLeftSwipe = deltaX > minSwipeDistance;
+      const isRightSwipe = deltaX < -minSwipeDistance;
 
-    if (isLeftSwipe && currentIndex < photos.length - 1) {
-      onIndexChange(currentIndex + 1);
-    }
-    if (isRightSwipe && currentIndex > 0) {
-      onIndexChange(currentIndex - 1);
+      if (isLeftSwipe && currentIndex < photos.length - 1) {
+        onIndexChange(currentIndex + 1);
+      }
+      if (isRightSwipe && currentIndex > 0) {
+        onIndexChange(currentIndex - 1);
+      }
     }
   };
 
