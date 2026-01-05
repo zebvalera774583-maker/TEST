@@ -406,15 +406,20 @@ export default function Home() {
 
       if (!response.ok) {
         const data = await response.json();
+        console.error('Ошибка ответа сервера:', data);
         throw new Error(data.error || 'Ошибка отправки заявки');
       }
 
-      alert('Заявка отправлена');
+      const result = await response.json();
+      console.log('Заявка успешно отправлена:', result);
+      
+      alert('Заявка успешно отправлена! Мы свяжемся с вами в ближайшее время.');
       setShowContactModal(false);
       setContactForm({ name: '', phone: '', comment: '' });
     } catch (error: any) {
-      console.error('Ошибка:', error);
-      alert(error.message || 'Ошибка отправки заявки');
+      console.error('Ошибка отправки заявки:', error);
+      const errorMessage = error.message || 'Ошибка отправки заявки. Попробуйте позже.';
+      alert(errorMessage);
     } finally {
       setContactSubmitting(false);
     }
