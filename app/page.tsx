@@ -1517,7 +1517,9 @@ const FullscreenCarousel = ({
     if (e.pointerId !== stateRef.current.pointerId) return;
 
     stateRef.current.active = false;
-    const dy = dragY;
+    
+    // Пересчитываем dy из координат события для актуального значения
+    const dy = e.clientY - stateRef.current.startY;
     const axis = stateRef.current.axis;
 
     stateRef.current.axis = null;
@@ -1525,7 +1527,8 @@ const FullscreenCarousel = ({
 
     if (axis === 'y') {
       // Порог: если abs(dy) >= 60 и axis === "y"
-      // dy > 0 → следующий пост (вниз), dy < 0 → предыдущий пост (вверх)
+      // dy > 0 → палец движется вниз → следующий пост (next)
+      // dy < 0 → палец движется вверх → предыдущий пост (prev)
       // Иначе вернуть translateY в 0
       if (Math.abs(dy) >= 60) {
         await commitVerticalSwipe(dy > 0 ? 'next' : 'prev');
@@ -1543,6 +1546,9 @@ const FullscreenCarousel = ({
           handleIndexChange(index + 1);
         }
       }
+      setDragY(0);
+    } else {
+      // Если ось не определена, просто сбрасываем
       setDragY(0);
     }
   };
