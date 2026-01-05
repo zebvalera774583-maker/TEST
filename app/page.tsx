@@ -1594,6 +1594,7 @@ const FullscreenCarousel = ({
 
   return (
     <div
+      ref={carouselRef}
       role="dialog"
       aria-modal="true"
       onClick={(e) => {
