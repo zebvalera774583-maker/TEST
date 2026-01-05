@@ -1420,34 +1420,55 @@ const FullscreenCarousel = ({
     onIndexChange(newIndex);
   }, [onIndexChange]);
 
-  // Простой обработчик прокрутки wheel - напрямую в JSX
-  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    if (animating) return;
-    
-    const columnsPerRow = 3;
-    const threshold = 30;
-    
-    // Игнорируем маленькие прокрутки
-    if (Math.abs(e.deltaY) < threshold) return;
-    
-    // Прокрутка вниз (deltaY > 0) → переход на фото ниже
-    if (e.deltaY > 0) {
-      const newIndex = index + columnsPerRow;
-      if (newIndex < photos.length) {
-        handleIndexChange(newIndex);
+  // Обработчик wheel на window - более надежный подход
+  useEffect(() => {
+    const handleWheel = (e: WheelEvent) => {
+      // Проверяем, что курсор над каруселью
+      const carouselElement = carouselRef.current;
+      if (!carouselElement) return;
+      
+      const rect = carouselElement.getBoundingClientRect();
+      const isOverCarousel = (
+        e.clientX >= rect.left &&
+        e.clientX <= rect.right &&
+        e.clientY >= rect.top &&
+        e.clientY <= rect.bottom
+      );
+      
+      if (!isOverCarousel) return;
+      
+      e.preventDefault();
+      e.stopPropagation();
+      
+      if (animating) return;
+      
+      const columnsPerRow = 3;
+      const threshold = 30;
+      
+      if (Math.abs(e.deltaY) < threshold) return;
+      
+      // Прокрутка вниз (deltaY > 0) → переход на фото ниже
+      if (e.deltaY > 0) {
+        const newIndex = index + columnsPerRow;
+        if (newIndex < photos.length) {
+          handleIndexChange(newIndex);
+        }
       }
-    }
-    // Прокрутка вверх (deltaY < 0) → переход на фото выше
-    else {
-      const newIndex = index - columnsPerRow;
-      if (newIndex >= 0) {
-        handleIndexChange(newIndex);
+      // Прокрутка вверх (deltaY < 0) → переход на фото выше
+      else {
+        const newIndex = index - columnsPerRow;
+        if (newIndex >= 0) {
+          handleIndexChange(newIndex);
+        }
       }
-    }
-  };
+    };
+
+    // Добавляем обработчик на window с { passive: false }
+    window.addEventListener('wheel', handleWheel, { passive: false });
+    return () => {
+      window.removeEventListener('wheel', handleWheel);
+    };
+  }, [index, photos.length, animating, handleIndexChange]);
 
   const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
 
