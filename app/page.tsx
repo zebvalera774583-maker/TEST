@@ -1367,34 +1367,23 @@ const FullscreenCarousel = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [currentIndex, photos.length, onClose, onIndexChange]);
 
-  // Обработка прокрутки (wheel) для навигации по вертикали
-  useEffect(() => {
-    const handleWheel = (e: Event) => {
-      const wheelEvent = e as WheelEvent;
-      // Предотвращаем стандартную прокрутку страницы
-      wheelEvent.preventDefault();
-      
-      const columnsPerRow = 3;
-      const deltaY = wheelEvent.deltaY;
-      
-      // Прокрутка вниз (deltaY > 0) → переход на фото ниже
-      if (deltaY > 0 && currentIndex + columnsPerRow < photos.length) {
-        onIndexChange(currentIndex + columnsPerRow);
-      }
-      // Прокрутка вверх (deltaY < 0) → переход на фото выше
-      else if (deltaY < 0 && currentIndex - columnsPerRow >= 0) {
-        onIndexChange(currentIndex - columnsPerRow);
-      }
-    };
-
-    const carouselElement = carouselRef.current;
-    if (carouselElement) {
-      carouselElement.addEventListener('wheel', handleWheel, { passive: false });
-      return () => {
-        carouselElement.removeEventListener('wheel', handleWheel);
-      };
+  // Обработчик прокрутки (wheel) для навигации по вертикали
+  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    // Предотвращаем стандартную прокрутку страницы
+    e.preventDefault();
+    
+    const columnsPerRow = 3;
+    const deltaY = e.deltaY;
+    
+    // Прокрутка вниз (deltaY > 0) → переход на фото ниже
+    if (deltaY > 0 && currentIndex + columnsPerRow < photos.length) {
+      onIndexChange(currentIndex + columnsPerRow);
     }
-  }, [currentIndex, photos.length, onIndexChange]);
+    // Прокрутка вверх (deltaY < 0) → переход на фото выше
+    else if (deltaY < 0 && currentIndex - columnsPerRow >= 0) {
+      onIndexChange(currentIndex - columnsPerRow);
+    }
+  };
 
   // Обработка свайпов
   const minSwipeDistance = 50;
@@ -1474,6 +1463,7 @@ const FullscreenCarousel = ({
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
+      onWheel={handleWheel}
       style={{
         position: 'relative',
         width: '100%',
