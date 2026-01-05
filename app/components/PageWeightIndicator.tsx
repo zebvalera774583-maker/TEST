@@ -6,82 +6,6 @@ export default function PageWeightIndicator() {
   const [pageWeight, setPageWeight] = useState<string>('0 KB');
 
   useEffect(() => {
-    const calculatePageWeight = () => {
-      try {
-        let totalSize = 0;
-
-        // Подсчет веса изображений
-        const images = document.querySelectorAll('img');
-        images.forEach((img) => {
-          const src = img.src;
-          if (src && src.startsWith('http')) {
-            // Пытаемся получить размер через fetch
-            fetch(src, { method: 'HEAD' })
-              .then((response) => {
-                const contentLength = response.headers.get('content-length');
-                if (contentLength) {
-                  totalSize += parseInt(contentLength, 10);
-                  updateWeight(totalSize);
-                }
-              })
-              .catch(() => {
-                // Игнорируем ошибки для внешних ресурсов
-              });
-          }
-        });
-
-        // Подсчет веса скриптов
-        const scripts = document.querySelectorAll('script[src]');
-        scripts.forEach((script) => {
-          const src = (script as HTMLScriptElement).src;
-          if (src) {
-            fetch(src, { method: 'HEAD' })
-              .then((response) => {
-                const contentLength = response.headers.get('content-length');
-                if (contentLength) {
-                  totalSize += parseInt(contentLength, 10);
-                  updateWeight(totalSize);
-                }
-              })
-              .catch(() => {});
-          }
-        });
-
-        // Подсчет веса стилей
-        const styles = document.querySelectorAll('link[rel="stylesheet"]');
-        styles.forEach((style) => {
-          const href = (style as HTMLLinkElement).href;
-          if (href) {
-            fetch(href, { method: 'HEAD' })
-              .then((response) => {
-                const contentLength = response.headers.get('content-length');
-                if (contentLength) {
-                  totalSize += parseInt(contentLength, 10);
-                  updateWeight(totalSize);
-                }
-              })
-              .catch(() => {});
-          }
-        });
-
-        // Подсчет веса встроенных стилей и скриптов
-        const inlineStyles = document.querySelectorAll('style');
-        inlineStyles.forEach((style) => {
-          totalSize += new Blob([style.textContent || '']).size;
-        });
-
-        const inlineScripts = document.querySelectorAll('script:not([src])');
-        inlineScripts.forEach((script) => {
-          totalSize += new Blob([script.textContent || '']).size;
-        });
-
-        // Обновляем сразу с текущим размером
-        updateWeight(totalSize);
-      } catch (error) {
-        console.error('Ошибка подсчета веса страницы:', error);
-      }
-    };
-
     const updateWeight = (bytes: number) => {
       let formatted: string;
       if (bytes < 1024) {
@@ -94,12 +18,99 @@ export default function PageWeightIndicator() {
       setPageWeight(formatted);
     };
 
+    const calculatePageWeight = async () => {
+      try {
+        let totalSize = 0;
+
+        // Подсчет веса изображений
+        const images = Array.from(document.querySelectorAll('img'));
+        const imagePromises = images.map((img) => {
+          const src = img.src;
+          if (src && (src.startsWith('http') || src.startsWith('data:'))) {
+            if (src.startsWith('data:')) {
+              // Для data URLs считаем размер напрямую
+              const base64Length = src.length - (src.indexOf(',') + 1);
+              const size = Math.ceil(base64Length * 0.75); // Примерный размер
+              return Promise.resolve(size);
+            } else {
+              // Для внешних URL пытаемся получить размер
+              return fetch(src, { method: 'HEAD' })
+                .then((response) => {
+                  const contentLength = response.headers.get('content-length');
+                  return contentLength ? parseInt(contentLength, 10) : 0;
+                })
+                .catch(() => 0);
+            }
+          }
+          return Promise.resolve(0);
+        });
+
+        const imageSizes = await Promise.all(imagePromises);
+        totalSize += imageSizes.reduce((sum, size) => sum + size, 0);
+
+        // Подсчет веса скриптов
+        const scripts = Array.from(document.querySelectorAll('script[src]'));
+        const scriptPromises = scripts.map((script) => {
+          const src = (script as HTMLScriptElement).src;
+          if (src) {
+            return fetch(src, { method: 'HEAD' })
+              .then((response) => {
+                const contentLength = response.headers.get('content-length');
+                return contentLength ? parseInt(contentLength, 10) : 0;
+              })
+              .catch(() => 0);
+          }
+          return Promise.resolve(0);
+        });
+
+        const scriptSizes = await Promise.all(scriptPromises);
+        totalSize += scriptSizes.reduce((sum, size) => sum + size, 0);
+
+        // Подсчет веса стилей
+        const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"]'));
+        const stylePromises = styles.map((style) => {
+          const href = (style as HTMLLinkElement).href;
+          if (href) {
+            return fetch(href, { method: 'HEAD' })
+              .then((response) => {
+                const contentLength = response.headers.get('content-length');
+                return contentLength ? parseInt(contentLength, 10) : 0;
+              })
+              .catch(() => 0);
+          }
+          return Promise.resolve(0);
+        });
+
+        const styleSizes = await Promise.all(stylePromises);
+        totalSize += styleSizes.reduce((sum, size) => sum + size, 0);
+
+        // Подсчет веса встроенных стилей и скриптов
+        const inlineStyles = document.querySelectorAll('style');
+        inlineStyles.forEach((style) => {
+          totalSize += new Blob([style.textContent || '']).size;
+        });
+
+        const inlineScripts = document.querySelectorAll('script:not([src])');
+        inlineScripts.forEach((script) => {
+          totalSize += new Blob([script.textContent || '']).size;
+        });
+
+        // Обновляем вес
+        updateWeight(totalSize);
+      } catch (error) {
+        console.error('Ошибка подсчета веса страницы:', error);
+      }
+    };
+
     // Подсчитываем вес при загрузке
     calculatePageWeight();
 
     // Обновляем при изменении DOM (добавление/удаление изображений)
     const observer = new MutationObserver(() => {
-      calculatePageWeight();
+      // Небольшая задержка для завершения загрузки ресурсов
+      setTimeout(() => {
+        calculatePageWeight();
+      }, 500);
     });
 
     observer.observe(document.body, {
@@ -128,4 +139,3 @@ export default function PageWeightIndicator() {
     </div>
   );
 }
-
