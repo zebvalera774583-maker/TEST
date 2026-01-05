@@ -48,5 +48,27 @@ DROP POLICY IF EXISTS "Public can read site_stats" ON site_stats;
 CREATE POLICY "Public can read site_stats" ON site_stats
   FOR SELECT USING (true);
 
+-- Таблица для хранения заявок с сайта
+CREATE TABLE IF NOT EXISTS contact_requests (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  comment TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Индекс для сортировки заявок
+CREATE INDEX IF NOT EXISTS idx_contact_requests_created_at ON contact_requests(created_at DESC);
+
+-- Включаем RLS для contact_requests
+ALTER TABLE contact_requests ENABLE ROW LEVEL SECURITY;
+
+-- Политика: публика может только вставлять заявки
+DROP POLICY IF EXISTS "Public can insert contact_requests" ON contact_requests;
+CREATE POLICY "Public can insert contact_requests" ON contact_requests
+  FOR INSERT WITH CHECK (true);
+
+-- Чтение заявок будет через service_role key (обходит RLS)
+
 -- Политики для админки (запись/удаление через service role key)
 -- Эти операции будут выполняться через supabaseAdmin, который обходит RLS
