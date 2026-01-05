@@ -35,6 +35,7 @@ export default function Home() {
   const [showContactModal, setShowContactModal] = useState(false);
   const [contactForm, setContactForm] = useState({ name: '', phone: '', comment: '' });
   const [contactSubmitting, setContactSubmitting] = useState(false);
+  const [adminMenuOpen, setAdminMenuOpen] = useState(false);
 
   // Загружаем фото и увеличиваем счетчик просмотров
   useEffect(() => {
@@ -496,11 +497,12 @@ export default function Home() {
         {/* Статистика вровень с верхом аватара */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(3, auto)',
+          gridTemplateColumns: isAdmin ? 'repeat(3, auto) auto' : 'repeat(3, auto)',
           gap: '24px',
           flex: 1,
           alignSelf: 'flex-start',
           justifyContent: 'flex-end',
+          alignItems: 'center',
         }}>
           <div style={{ 
             fontSize: '14px', 
@@ -526,6 +528,29 @@ export default function Home() {
             <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '4px' }}>4</div>
             <div style={{ fontSize: '12px', color: '#666' }}>города</div>
           </div>
+          {/* Гамбургер-меню для админа */}
+          {isAdmin && (
+            <AdminMenu
+              isOpen={adminMenuOpen}
+              onToggle={() => setAdminMenuOpen(!adminMenuOpen)}
+              items={[
+                {
+                  id: 'logout',
+                  label: 'Выйти из админки',
+                  icon: '🚪',
+                  onClick: handleLogout,
+                  danger: true,
+                },
+                // Здесь можно легко добавлять новые пункты меню
+                // {
+                //   id: 'settings',
+                //   label: 'Настройки',
+                //   icon: '⚙️',
+                //   onClick: () => console.log('Настройки'),
+                // },
+              ]}
+            />
+          )}
         </div>
       </div>
 
@@ -557,26 +582,6 @@ export default function Home() {
           Москва - Питер - Сочи - Краснодар
         </div>
       </div>
-
-      {/* Кнопка входа/выхода для админа (скрыта для обычных посетителей, маленькая для админа) */}
-      {isAdmin && (
-        <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'flex-end' }}>
-          <button
-            onClick={handleLogout}
-            style={{
-              padding: '6px 12px',
-              fontSize: '12px',
-              border: '1px solid #dc3545',
-              borderRadius: '6px',
-              backgroundColor: '#dc3545',
-              color: 'white',
-              cursor: 'pointer',
-            }}
-          >
-            Выйти
-          </button>
-        </div>
-      )}
 
       {/* Кнопка загрузки фото (только для админа) - синяя кнопка как раньше */}
       {isAdmin && (
