@@ -959,37 +959,13 @@ export default function Home() {
         const group = photoGroups.find(g => g.groupId === openFullscreen.groupId);
         if (!group) return null;
         return (
-          <div
-            onClick={() => setOpenFullscreen(null)}
-            style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: 'rgba(255, 255, 255, 0.98)',
-              zIndex: 1000,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') {
-                setOpenFullscreen(null);
-              }
-            }}
-            tabIndex={0}
-          >
-            {/* Карусель в полном размере */}
-            <FullscreenCarousel 
-              photos={group.photos}
-              currentIndex={openFullscreen.photoIndex}
-              onIndexChange={(index) => setOpenFullscreen({ ...openFullscreen, photoIndex: index })}
-              onClose={() => setOpenFullscreen(null)}
-              onOpenContact={() => setShowContactModal(true)}
-            />
-          </div>
+          <FullscreenCarousel 
+            photos={group.photos}
+            currentIndex={openFullscreen.photoIndex}
+            onIndexChange={(index) => setOpenFullscreen({ ...openFullscreen, photoIndex: index })}
+            onClose={() => setOpenFullscreen(null)}
+            onOpenContact={() => setShowContactModal(true)}
+          />
         );
       })()}
 

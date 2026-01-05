@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 
 interface SitePhoto {
   id: string;
@@ -61,6 +61,7 @@ export default function FullscreenCarousel({
   const wheelAccumulatorRef = useRef<number>(0);
   const lastNavTsRef = useRef<number>(0);
   const carouselRef = useRef<HTMLDivElement>(null);
+  const indexRef = useRef<number>(currentIndex); // Ref для актуального индекса
   const stateRef = useRef<{
     pointerId: number;
     startX: number;
@@ -79,8 +80,8 @@ export default function FullscreenCarousel({
   // 4) DERIVED / MEMO (потом производные значения)
   // =========================
   const photosLength = photos.length;
-  const canGoUp = index - columnsPerRow >= 0;
-  const canGoDown = index + columnsPerRow < photosLength;
+  const canGoUp = useMemo(() => index - columnsPerRow >= 0, [index, columnsPerRow]);
+  const canGoDown = useMemo(() => index + columnsPerRow < photosLength, [index, photosLength, columnsPerRow]);
 
   // =========================
   // 5) HELPERS (потом вспомогательные функции)
@@ -102,6 +103,7 @@ export default function FullscreenCarousel({
 
   // Функция изменения индекса
   const handleIndexChange = useCallback((newIndex: number) => {
+    indexRef.current = newIndex; // Обновляем ref
     setIndex(newIndex);
     onIndexChange(newIndex);
     // Сбрасываем accumulator при смене индекса
@@ -115,8 +117,10 @@ export default function FullscreenCarousel({
     if (animating) return;
     if (!guardCooldown()) return;
 
+    // Используем ref для получения актуального индекса
+    const currentIndex = indexRef.current;
     const step = columnsPerRow;
-    const nextIndex = direction === 'down' ? index + step : index - step;
+    const nextIndex = direction === 'down' ? currentIndex + step : currentIndex - step;
 
     // границы
     if (nextIndex < 0 || nextIndex >= photosLength) return;
@@ -126,7 +130,7 @@ export default function FullscreenCarousel({
 
     // Меняем индекс
     handleIndexChange(nextIndex);
-  }, [animating, guardCooldown, index, photosLength, columnsPerRow, resetWheelAccumulator, handleIndexChange]);
+  }, [animating, guardCooldown, photosLength, columnsPerRow, resetWheelAccumulator, handleIndexChange]);
 
   // =========================
   // 7) WHEEL HANDLER (только сигнал + accumulator)
@@ -260,11 +264,12 @@ export default function FullscreenCarousel({
       // Горизонтальная навигация
       const dx = e.clientX - stateRef.current.startX;
       const minSwipeDistance = 50;
+      const currentIndex = indexRef.current; // Используем ref для актуального индекса
       if (Math.abs(dx) > minSwipeDistance) {
-        if (dx > 0 && index > 0) {
-          handleIndexChange(index - 1);
-        } else if (dx < 0 && index < photosLength - 1) {
-          handleIndexChange(index + 1);
+        if (dx > 0 && currentIndex > 0) {
+          handleIndexChange(currentIndex - 1);
+        } else if (dx < 0 && currentIndex < photosLength - 1) {
+          handleIndexChange(currentIndex + 1);
         }
       }
       setDragY(0);
@@ -279,6 +284,7 @@ export default function FullscreenCarousel({
   // =========================
   // Синхронизируем внутренний индекс с внешним
   useEffect(() => {
+    indexRef.current = currentIndex; // Обновляем ref
     setIndex(currentIndex);
     // Сбрасываем accumulator при смене индекса извне
     resetWheelAccumulator();
@@ -318,10 +324,11 @@ export default function FullscreenCarousel({
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowLeft' && index > 0) {
-        handleIndexChange(index - 1);
-      } else if (e.key === 'ArrowRight' && index < photosLength - 1) {
-        handleIndexChange(index + 1);
+      const currentIndex = indexRef.current; // Используем ref для актуального индекса
+      if (e.key === 'ArrowLeft' && currentIndex > 0) {
+        handleIndexChange(currentIndex - 1);
+      } else if (e.key === 'ArrowRight' && currentIndex < photosLength - 1) {
+        handleIndexChange(currentIndex + 1);
       } else if (e.key === 'Escape') {
         onClose();
       }
@@ -329,7 +336,7 @@ export default function FullscreenCarousel({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [index, photosLength, onClose, handleIndexChange]);
+  }, [photosLength, onClose, handleIndexChange]);
 
   // =========================
   // 10) JSX (ниже — разметка)
@@ -470,7 +477,7 @@ export default function FullscreenCarousel({
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            handleIndexChange(index - 1);
+            handleIndexChange(indexRef.current - 1);
           }}
           style={{
             position: 'absolute',
@@ -501,7 +508,7 @@ export default function FullscreenCarousel({
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            handleIndexChange(index + 1);
+            handleIndexChange(indexRef.current + 1);
           }}
           style={{
             position: 'absolute',
