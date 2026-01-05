@@ -1420,94 +1420,33 @@ const FullscreenCarousel = ({
     onIndexChange(newIndex);
   }, [onIndexChange]);
 
-  // Используем ref для хранения актуальных значений
-  const indexRef = useRef(index);
-  const photosLengthRef = useRef(photos.length);
-  const animatingRef = useRef(animating);
-  
-  useEffect(() => {
-    indexRef.current = index;
-    photosLengthRef.current = photos.length;
-    animatingRef.current = animating;
-  }, [index, photos.length, animating]);
-
-  // Обработчик wheel на window - более надежный подход
-  useEffect(() => {
-    const handleWheel = (e: WheelEvent) => {
-      console.log('Wheel event detected!', { deltaY: e.deltaY, clientX: e.clientX, clientY: e.clientY });
-      
-      // Проверяем, что курсор над каруселью
-      const carouselElement = carouselRef.current;
-      if (!carouselElement) {
-        console.log('No carousel element');
-        return;
+  // Обработчик wheel - БЕЗ preventDefault (wheel по умолчанию passive)
+  // Используем wheel только как сигнал для навигации
+  // Блокировку скролла делаем через body { overflow: hidden } (уже есть в useEffect выше)
+  const handleWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
+    // НЕ вызываем preventDefault() - wheel обработчик passive по умолчанию
+    
+    if (animating) return;
+    
+    const threshold = 50; // Минимальная прокрутка для срабатывания
+    
+    if (Math.abs(e.deltaY) < threshold) return;
+    
+    // Прокрутка вниз (deltaY > 0) → следующий фото (index + 1)
+    if (e.deltaY > 0) {
+      const newIndex = index + 1;
+      if (newIndex < photos.length) {
+        handleIndexChange(newIndex);
       }
-      
-      const rect = carouselElement.getBoundingClientRect();
-      const isOverCarousel = (
-        e.clientX >= rect.left &&
-        e.clientX <= rect.right &&
-        e.clientY >= rect.top &&
-        e.clientY <= rect.bottom
-      );
-      
-      console.log('Is over carousel:', isOverCarousel, { rect, clientX: e.clientX, clientY: e.clientY });
-      
-      if (!isOverCarousel) return;
-      
-      e.preventDefault();
-      e.stopPropagation();
-      
-      if (animatingRef.current) {
-        console.log('Blocked: animating');
-        return;
+    }
+    // Прокрутка вверх (deltaY < 0) → предыдущий фото (index - 1)
+    else {
+      const newIndex = index - 1;
+      if (newIndex >= 0) {
+        handleIndexChange(newIndex);
       }
-      
-      const columnsPerRow = 3;
-      const threshold = 30;
-      
-      if (Math.abs(e.deltaY) < threshold) {
-        console.log('Blocked: threshold too small', Math.abs(e.deltaY));
-        return;
-      }
-      
-      const currentIndex = indexRef.current;
-      const currentPhotosLength = photosLengthRef.current;
-      
-      console.log('Processing wheel:', { currentIndex, currentPhotosLength, deltaY: e.deltaY });
-      
-      // Прокрутка вниз (deltaY > 0) → переход на фото ниже
-      if (e.deltaY > 0) {
-        const newIndex = currentIndex + columnsPerRow;
-        console.log('Wheel down: trying', currentIndex, '->', newIndex);
-        if (newIndex < currentPhotosLength) {
-          handleIndexChange(newIndex);
-          console.log('Changed to', newIndex);
-        } else {
-          console.log('Cannot go down: at end');
-        }
-      }
-      // Прокрутка вверх (deltaY < 0) → переход на фото выше
-      else {
-        const newIndex = currentIndex - columnsPerRow;
-        console.log('Wheel up: trying', currentIndex, '->', newIndex);
-        if (newIndex >= 0) {
-          handleIndexChange(newIndex);
-          console.log('Changed to', newIndex);
-        } else {
-          console.log('Cannot go up: at start');
-        }
-      }
-    };
-
-    // Добавляем обработчик на window с { passive: false }
-    window.addEventListener('wheel', handleWheel, { passive: false });
-    console.log('Wheel listener added to window');
-    return () => {
-      window.removeEventListener('wheel', handleWheel);
-      console.log('Wheel listener removed from window');
-    };
-  }, [handleIndexChange]);
+    }
+  }, [index, photos.length, animating, handleIndexChange]);
 
   const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
 
