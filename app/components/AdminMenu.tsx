@@ -14,9 +14,10 @@ interface AdminMenuProps {
   items: MenuItem[];
   isOpen: boolean;
   onToggle: () => void;
+  activeSection?: string | null;
 }
 
-export default function AdminMenu({ items, isOpen, onToggle }: AdminMenuProps) {
+export default function AdminMenu({ items, isOpen, onToggle, activeSection }: AdminMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -178,40 +179,53 @@ export default function AdminMenu({ items, isOpen, onToggle }: AdminMenuProps) {
           overflowY: 'auto',
           padding: '8px 0',
         }}>
-          {items.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => {
-                item.onClick();
-                onToggle();
-              }}
-              style={{
-                width: '100%',
-                padding: '14px 20px',
-                background: 'none',
-                border: 'none',
-                textAlign: 'left',
-                cursor: 'pointer',
-                fontSize: '15px',
-                color: item.danger ? '#dc3545' : '#333',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                transition: 'background-color 0.15s',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#f5f5f5';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-              }}
-            >
-              {item.icon && (
-                <span style={{ fontSize: '18px' }}>{item.icon}</span>
-              )}
-              <span>{item.label}</span>
-            </button>
-          ))}
+          {items.map((item) => {
+            const isActive = activeSection === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => {
+                  item.onClick();
+                  // Не закрываем меню при клике на активный пункт
+                  if (!isActive) {
+                    onToggle();
+                  }
+                }}
+                style={{
+                  width: '100%',
+                  padding: '14px 20px',
+                  background: isActive ? '#f0f0f0' : 'none',
+                  border: 'none',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  fontSize: '15px',
+                  color: item.danger ? '#dc3545' : isActive ? '#485B78' : '#333',
+                  fontWeight: isActive ? '600' : '400',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  transition: 'background-color 0.15s',
+                }}
+                onMouseEnter={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.backgroundColor = '#f5f5f5';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  } else {
+                    e.currentTarget.style.backgroundColor = '#f0f0f0';
+                  }
+                }}
+              >
+                {item.icon && (
+                  <span style={{ fontSize: '18px' }}>{item.icon}</span>
+                )}
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
         </nav>
       </div>
     </>

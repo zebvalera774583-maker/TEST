@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import imageCompression from 'browser-image-compression';
 import AdminMenu from './components/AdminMenu';
 import ContactRequests from './components/ContactRequests';
+import PageWeightIndicator from './components/PageWeightIndicator';
 
 interface SitePhoto {
   id: string;
@@ -190,16 +191,51 @@ export default function Home() {
   };
 
   const compressImage = async (file: File): Promise<File> => {
+    // Улучшенные параметры сжатия
     const options = {
-      maxSizeMB: 2,
-      maxWidthOrHeight: 1920,
+      maxSizeMB: 1.5, // Уменьшено с 2 до 1.5 МБ
+      maxWidthOrHeight: 1600, // Ресайз до 1600px вместо 1920px
       useWebWorker: true,
+      initialQuality: 0.85, // Качество 85% для баланса размера и качества
+      exifOrientation: false, // Удаление EXIF данных
     };
+    
     try {
-      return await imageCompression(file, options);
+      // Пытаемся сжать с WebP (если поддерживается)
+      try {
+        const webpOptions = {
+          ...options,
+          fileType: 'image/webp',
+        };
+        const webpFile = await imageCompression(file, webpOptions);
+        // Проверяем, что WebP действительно создан
+        if (webpFile.type === 'image/webp') {
+          return webpFile;
+        }
+      } catch (webpError) {
+        // Если WebP не получился, продолжаем с JPEG
+        console.log('WebP не поддерживается, используем JPEG');
+      }
+      
+      // Fallback на JPEG
+      const jpegOptions = {
+        ...options,
+        fileType: 'image/jpeg',
+      };
+      return await imageCompression(file, jpegOptions);
     } catch (error) {
       console.error('Ошибка сжатия:', error);
-      return file;
+      // Последний fallback - базовые настройки
+      try {
+        return await imageCompression(file, {
+          maxSizeMB: 1.5,
+          maxWidthOrHeight: 1600,
+          useWebWorker: true,
+        });
+      } catch (fallbackError) {
+        console.error('Ошибка fallback сжатия:', fallbackError);
+        return file;
+      }
     }
   };
 
@@ -564,7 +600,7 @@ export default function Home() {
 
       {/* Гамбургер-меню для админа (после городов, перед кнопкой загрузки) */}
       {isAdmin && (
-        <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'flex-end' }}>
+        <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
           <AdminMenu
             isOpen={adminMenuOpen}
             onToggle={() => setAdminMenuOpen(!adminMenuOpen)}
@@ -583,7 +619,10 @@ export default function Home() {
               //   onClick: () => console.log('Настройки'),
               // },
             ]}
+            activeSection={showContactRequests ? 'requests' : null}
           />
+          {/* Индикатор веса страницы */}
+          <PageWeightIndicator />
         </div>
       )}
 
