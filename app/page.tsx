@@ -1489,11 +1489,13 @@ const FullscreenCarousel = ({
 
     if (stateRef.current.axis === 'y') {
       // КРИТИЧНО: preventDefault для блокировки нативного скролла на iOS
+      // Важно вызывать preventDefault() при pointermove, иначе на iOS уедет страница
+      // В React обработчики не passive по умолчанию, но лучше явно указать
       e.preventDefault();
       const limited = clamp(dy, -220, 220);
       setDragY(limited);
     } else {
-      // X-ось: горизонтальная навигация (оставляем для будущей реализации)
+      // X-ось: горизонтальная навигация (свайп влево/вправо)
     }
   };
 
@@ -1509,6 +1511,9 @@ const FullscreenCarousel = ({
     stateRef.current.pointerId = -1;
 
     if (axis === 'y') {
+      // Порог: если abs(dy) >= 60 и axis === "y"
+      // dy > 0 → следующий пост (вниз), dy < 0 → предыдущий пост (вверх)
+      // Иначе вернуть translateY в 0
       if (Math.abs(dy) >= 60) {
         await commitVerticalSwipe(dy > 0 ? 'next' : 'prev');
       } else {
@@ -1548,6 +1553,9 @@ const FullscreenCarousel = ({
       onWheel={handleWheel}
       onTouchMove={(e) => {
         // КРИТИЧНО: fallback для iOS - если touch-action не сработал
+        // Если на iOS всё равно двигается страница — значит touch-action не применился
+        // к правильному контейнеру, или preventDefault не срабатывает.
+        // Этот обработчик — дополнительная защита.
         e.preventDefault();
       }}
       style={{
@@ -1559,6 +1567,8 @@ const FullscreenCarousel = ({
         justifyContent: 'center',
         overflow: 'hidden',
         // КРИТИЧНО для мобилы: блокируем нативный скролл
+        // touch-action: none предотвращает все жесты браузера (скролл, зум, панорамирование)
+        // Должен быть на overlay-обёртке, иначе на iOS может двигаться страница
         touchAction: 'none',
         zIndex: 1000,
       }}
