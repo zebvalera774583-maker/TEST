@@ -1590,7 +1590,9 @@ const FullscreenCarousel = ({
       onClick={(e) => {
         // клик по фону закрывает (но не по дочерним элементам)
         // Проверяем, что клик именно по самому div, а не по его дочерним элементам
-        if (e.target === e.currentTarget) {
+        const target = e.target as HTMLElement;
+        // Закрываем только если клик по самому div или по элементам без обработчиков
+        if (target === e.currentTarget || target.classList.contains('carousel-backdrop')) {
           onClose();
         }
       }}
