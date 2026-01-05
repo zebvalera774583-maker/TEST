@@ -611,6 +611,13 @@ export default function Home() {
                 icon: '📋',
                 onClick: () => setShowContactRequests(true),
               },
+              {
+                id: 'logout',
+                label: 'Выйти из админки',
+                icon: '🚪',
+                onClick: handleLogout,
+                danger: true,
+              },
               // Здесь можно легко добавлять новые пункты меню
               // {
               //   id: 'settings',
