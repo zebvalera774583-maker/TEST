@@ -1415,10 +1415,10 @@ const FullscreenCarousel = ({
   }, [index, photos.length, onClose]);
 
   // Функция изменения индекса - объявляем ДО использования в useEffect
-  const handleIndexChange = (newIndex: number) => {
+  const handleIndexChange = useCallback((newIndex: number) => {
     setIndex(newIndex);
     onIndexChange(newIndex);
-  };
+  }, [onIndexChange]);
 
   // Обработчик прокрутки (wheel) для навигации по вертикали
   // Используем useEffect с addEventListener для явного указания { passive: false }
@@ -1435,21 +1435,26 @@ const FullscreenCarousel = ({
       // Игнорируем маленькие прокрутки
       if (Math.abs(e.deltaY) < threshold) return;
       
-      // Прокрутка вниз (deltaY > 0) → переход на фото ниже
-      if (e.deltaY > 0) {
-        const newIndex = index + columnsPerRow;
-        // Проверяем, что новый индекс не выходит за границы (photos.length - 1 - максимальный индекс)
-        if (newIndex < photos.length) {
-          handleIndexChange(newIndex);
+      // Используем актуальные значения через замыкание
+      setIndex((currentIndex) => {
+        // Прокрутка вниз (deltaY > 0) → переход на фото ниже
+        if (e.deltaY > 0) {
+          const newIndex = currentIndex + columnsPerRow;
+          if (newIndex < photos.length) {
+            onIndexChange(newIndex);
+            return newIndex;
+          }
         }
-      }
-      // Прокрутка вверх (deltaY < 0) → переход на фото выше
-      else {
-        const newIndex = index - columnsPerRow;
-        if (newIndex >= 0) {
-          handleIndexChange(newIndex);
+        // Прокрутка вверх (deltaY < 0) → переход на фото выше
+        else {
+          const newIndex = currentIndex - columnsPerRow;
+          if (newIndex >= 0) {
+            onIndexChange(newIndex);
+            return newIndex;
+          }
         }
-      }
+        return currentIndex;
+      });
     };
 
     const carouselElement = carouselRef.current;
@@ -1460,7 +1465,7 @@ const FullscreenCarousel = ({
         carouselElement.removeEventListener('wheel', handleWheel);
       };
     }
-  }, [index, photos.length, animating, handleIndexChange]);
+  }, [photos.length, animating, onIndexChange]);
 
   const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
 
