@@ -6,6 +6,7 @@ import imageCompression from 'browser-image-compression';
 import AdminMenu from './components/AdminMenu';
 import ContactRequests from './components/ContactRequests';
 import PageWeightIndicator from './components/PageWeightIndicator';
+import FullscreenCarousel from './components/FullscreenCarousel';
 
 interface SitePhoto {
   id: string;
