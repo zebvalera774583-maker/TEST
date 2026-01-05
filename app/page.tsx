@@ -1427,8 +1427,6 @@ const FullscreenCarousel = ({
       e.preventDefault();
       e.stopPropagation();
       
-      if (animating) return;
-      
       const columnsPerRow = 3;
       const threshold = 30;
       
@@ -1437,11 +1435,15 @@ const FullscreenCarousel = ({
       
       // Используем актуальные значения через замыкание
       setIndex((currentIndex) => {
+        // Проверяем animating через состояние
+        if (animating) return currentIndex;
+        
         // Прокрутка вниз (deltaY > 0) → переход на фото ниже
         if (e.deltaY > 0) {
           const newIndex = currentIndex + columnsPerRow;
           if (newIndex < photos.length) {
-            onIndexChange(newIndex);
+            // Вызываем onIndexChange асинхронно, чтобы не блокировать
+            setTimeout(() => onIndexChange(newIndex), 0);
             return newIndex;
           }
         }
@@ -1449,7 +1451,7 @@ const FullscreenCarousel = ({
         else {
           const newIndex = currentIndex - columnsPerRow;
           if (newIndex >= 0) {
-            onIndexChange(newIndex);
+            setTimeout(() => onIndexChange(newIndex), 0);
             return newIndex;
           }
         }
