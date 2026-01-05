@@ -1605,7 +1605,6 @@ const FullscreenCarousel = ({
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
-      onWheel={handleWheel}
       onTouchMove={(e) => {
         // КРИТИЧНО: fallback для iOS - если touch-action не сработал
         // Если на iOS всё равно двигается страница — значит touch-action не применился
