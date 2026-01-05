@@ -197,7 +197,7 @@ export default function Home() {
       maxWidthOrHeight: 1600, // Ресайз до 1600px вместо 1920px
       useWebWorker: true,
       initialQuality: 0.85, // Качество 85% для баланса размера и качества
-      exifOrientation: false, // Удаление EXIF данных
+      // exifOrientation удален - библиотека автоматически обрабатывает ориентацию
     };
     
     try {
@@ -1123,6 +1123,8 @@ export default function Home() {
             </form>
           </div>
         </div>
+      )}
+        </>
       )}
 
     </main>
