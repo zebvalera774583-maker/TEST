@@ -1500,6 +1500,12 @@ const FullscreenCarousel = ({
   const onPointerDown = (e: React.PointerEvent) => {
     if (animating) return;
     
+    // Игнорируем, если это клик по кнопке или другому интерактивному элементу
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'BUTTON' || target.closest('button')) {
+      return;
+    }
+    
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     
     stateRef.current.pointerId = e.pointerId;
