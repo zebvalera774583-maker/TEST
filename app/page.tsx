@@ -598,31 +598,56 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Гамбургер-меню для админа (после городов, перед кнопкой загрузки) */}
+      {/* Гамбургер-меню и кнопка выхода для админа (после городов, перед кнопкой загрузки) */}
       {isAdmin && (
-        <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <AdminMenu
-            isOpen={adminMenuOpen}
-            onToggle={() => setAdminMenuOpen(!adminMenuOpen)}
-            items={[
-              {
-                id: 'requests',
-                label: 'Заявки',
-                icon: '📋',
-                onClick: () => setShowContactRequests(true),
-              },
-              // Здесь можно легко добавлять новые пункты меню
-              // {
-              //   id: 'settings',
-              //   label: 'Настройки',
-              //   icon: '⚙️',
-              //   onClick: () => console.log('Настройки'),
-              // },
-            ]}
-            activeSection={showContactRequests ? 'requests' : null}
-          />
-          {/* Индикатор веса страницы */}
-          <PageWeightIndicator />
+        <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <AdminMenu
+              isOpen={adminMenuOpen}
+              onToggle={() => setAdminMenuOpen(!adminMenuOpen)}
+              items={[
+                {
+                  id: 'requests',
+                  label: 'Заявки',
+                  icon: '📋',
+                  onClick: () => setShowContactRequests(true),
+                },
+                // Здесь можно легко добавлять новые пункты меню
+                // {
+                //   id: 'settings',
+                //   label: 'Настройки',
+                //   icon: '⚙️',
+                //   onClick: () => console.log('Настройки'),
+                // },
+              ]}
+              activeSection={showContactRequests ? 'requests' : null}
+            />
+            {/* Индикатор веса страницы */}
+            <PageWeightIndicator />
+          </div>
+          {/* Кнопка выхода из админки */}
+          <button
+            onClick={handleLogout}
+            style={{
+              padding: '8px 16px',
+              fontSize: '14px',
+              border: '1px solid #dc3545',
+              borderRadius: '6px',
+              backgroundColor: '#dc3545',
+              color: 'white',
+              cursor: 'pointer',
+              fontWeight: '500',
+              transition: 'background-color 0.2s',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#c82333';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = '#dc3545';
+            }}
+          >
+            Выйти
+          </button>
         </div>
       )}
 
@@ -1360,11 +1385,19 @@ const FullscreenCarousel = ({
     const absDeltaX = Math.abs(deltaX);
     const absDeltaY = Math.abs(deltaY);
     
-    // Свайп вниз для закрытия (только на мобильных)
-    // deltaY < 0 означает, что конечная точка ниже начальной (свайп вниз)
-    if (isMobile && absDeltaY > absDeltaX && absDeltaY > minSwipeDistance && deltaY < 0) {
-      onClose();
-      return;
+    // Вертикальные свайпы для перехода на соседние фото из сетки (3 колонки)
+    const columnsPerRow = 3;
+    if (absDeltaY > absDeltaX && absDeltaY > minSwipeDistance) {
+      // Свайп вниз = переход на фото ниже (следующая строка)
+      if (deltaY < 0 && currentIndex + columnsPerRow < photos.length) {
+        onIndexChange(currentIndex + columnsPerRow);
+        return;
+      }
+      // Свайп вверх = переход на фото выше (предыдущая строка)
+      if (deltaY > 0 && currentIndex - columnsPerRow >= 0) {
+        onIndexChange(currentIndex - columnsPerRow);
+        return;
+      }
     }
     
     // Горизонтальные свайпы (только если не было вертикального свайпа)
