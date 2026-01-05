@@ -1336,6 +1336,7 @@ const FullscreenCarousel = ({
   const [touchEnd, setTouchEnd] = useState<{ x: number; y: number } | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [captionExpanded, setCaptionExpanded] = useState(false);
+  const carouselRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -1365,6 +1366,35 @@ const FullscreenCarousel = ({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [currentIndex, photos.length, onClose, onIndexChange]);
+
+  // Обработка прокрутки (wheel) для навигации по вертикали
+  useEffect(() => {
+    const handleWheel = (e: WheelEvent) => {
+      // Предотвращаем стандартную прокрутку страницы
+      e.preventDefault();
+      
+      const columnsPerRow = 3;
+      const deltaY = e.deltaY;
+      
+      // Прокрутка вниз (deltaY > 0) → переход на фото ниже
+      if (deltaY > 0 && currentIndex + columnsPerRow < photos.length) {
+        onIndexChange(currentIndex + columnsPerRow);
+      }
+      // Прокрутка вверх (deltaY < 0) → переход на фото выше
+      else if (deltaY < 0 && currentIndex - columnsPerRow >= 0) {
+        onIndexChange(currentIndex - columnsPerRow);
+      }
+    };
+
+    // Добавляем обработчик на контейнер карусели
+    const carouselElement = document.querySelector('[data-fullscreen-carousel]');
+    if (carouselElement) {
+      carouselElement.addEventListener('wheel', handleWheel, { passive: false });
+      return () => {
+        carouselElement.removeEventListener('wheel', handleWheel);
+      };
+    }
+  }, [currentIndex, photos.length, onIndexChange]);
 
   // Обработка свайпов
   const minSwipeDistance = 50;
@@ -1439,6 +1469,7 @@ const FullscreenCarousel = ({
 
   return (
     <div
+      ref={carouselRef}
       onClick={(e) => e.stopPropagation()}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
