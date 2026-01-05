@@ -84,7 +84,7 @@ export default function AdminMenu({ items, isOpen, onToggle }: AdminMenuProps) {
           alignItems: 'center',
           justifyContent: 'center',
           fontSize: '20px',
-          color: '#333',
+          color: '#ff6b35',
           transition: 'opacity 0.2s',
         }}
         onMouseEnter={(e) => {
@@ -121,13 +121,13 @@ export default function AdminMenu({ items, isOpen, onToggle }: AdminMenuProps) {
         style={{
           position: 'fixed',
           top: 0,
-          right: isOpen ? 0 : isMobile ? '-80%' : '-320px',
+          left: isOpen ? 0 : isMobile ? '-80%' : '-320px',
           width: isMobile ? '80%' : '320px',
           height: '100vh',
           backgroundColor: '#fff',
           zIndex: 1999,
-          boxShadow: isOpen ? '-2px 0 10px rgba(0, 0, 0, 0.1)' : 'none',
-          transition: 'right 200ms ease',
+          boxShadow: isOpen ? '2px 0 10px rgba(0, 0, 0, 0.1)' : 'none',
+          transition: 'left 200ms ease',
           display: 'flex',
           flexDirection: 'column',
         }}

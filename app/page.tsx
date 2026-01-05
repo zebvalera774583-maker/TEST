@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import imageCompression from 'browser-image-compression';
 import AdminMenu from './components/AdminMenu';
+import ContactRequests from './components/ContactRequests';
 
 interface SitePhoto {
   id: string;
@@ -37,6 +38,7 @@ export default function Home() {
   const [contactForm, setContactForm] = useState({ name: '', phone: '', comment: '' });
   const [contactSubmitting, setContactSubmitting] = useState(false);
   const [adminMenuOpen, setAdminMenuOpen] = useState(false);
+  const [showContactRequests, setShowContactRequests] = useState(false);
 
   // Загружаем фото и увеличиваем счетчик просмотров
   useEffect(() => {
@@ -536,11 +538,10 @@ export default function Home() {
               onToggle={() => setAdminMenuOpen(!adminMenuOpen)}
               items={[
                 {
-                  id: 'logout',
-                  label: 'Выйти из админки',
-                  icon: '🚪',
-                  onClick: handleLogout,
-                  danger: true,
+                  id: 'requests',
+                  label: 'Заявки',
+                  icon: '📋',
+                  onClick: () => setShowContactRequests(true),
                 },
                 // Здесь можно легко добавлять новые пункты меню
                 // {
