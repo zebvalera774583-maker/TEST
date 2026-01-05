@@ -1604,8 +1604,11 @@ const FullscreenCarousel = ({
       role="dialog"
       aria-modal="true"
       onClick={(e) => {
-        // клик по фону закрывает
-        if (e.target === e.currentTarget) onClose();
+        // клик по фону закрывает (но не по дочерним элементам)
+        // Проверяем, что клик именно по самому div, а не по его дочерним элементам
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
       }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
