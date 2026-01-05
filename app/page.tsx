@@ -1421,12 +1421,15 @@ const FullscreenCarousel = ({
   }, [onIndexChange]);
 
   // Обработчик wheel - БЕЗ preventDefault (wheel по умолчанию passive)
-  // Используем wheel только как сигнал для навигации
+  // Используем wheel только как сигнал для навигации по вертикали (следующий/предыдущий фото)
   // Блокировку скролла делаем через body { overflow: hidden } (уже есть в useEffect выше)
   const handleWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
     // НЕ вызываем preventDefault() - wheel обработчик passive по умолчанию
     
     if (animating) return;
+    
+    // Игнорируем горизонтальную прокрутку (deltaX)
+    if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
     
     const threshold = 50; // Минимальная прокрутка для срабатывания
     
@@ -1741,7 +1744,6 @@ const FullscreenCarousel = ({
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            console.log('Right arrow clicked, current index:', index);
             handleIndexChange(index + 1);
           }}
           style={{
