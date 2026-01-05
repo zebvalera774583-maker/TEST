@@ -1376,12 +1376,19 @@ const FullscreenCarousel = ({
   };
 
   const onTouchMove = (e: React.TouchEvent) => {
-    const touch = e.touches[0];
-    setTouchEnd({ x: touch.clientX, y: touch.clientY });
+    if (e.touches.length > 0) {
+      const touch = e.touches[0];
+      setTouchEnd({ x: touch.clientX, y: touch.clientY });
+    }
   };
 
   const onTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
+    if (!touchStart || !touchEnd) {
+      setTouchStart(null);
+      setTouchEnd(null);
+      return;
+    }
+    
     const deltaX = touchStart.x - touchEnd.x;
     const deltaY = touchStart.y - touchEnd.y;
     const absDeltaX = Math.abs(deltaX);
@@ -1390,14 +1397,14 @@ const FullscreenCarousel = ({
     // Вертикальные свайпы для перехода на соседние фото из сетки (3 колонки)
     const columnsPerRow = 3;
     if (absDeltaY > absDeltaX && absDeltaY > minSwipeDistance) {
-      // Свайп вниз (палец движется вниз) = deltaY < 0 = переход на фото ниже (следующая строка)
+      // Свайп вниз: touchEnd.y > touchStart.y (палец движется вниз) = deltaY < 0
       if (deltaY < 0 && currentIndex + columnsPerRow < photos.length) {
         onIndexChange(currentIndex + columnsPerRow);
         setTouchStart(null);
         setTouchEnd(null);
         return;
       }
-      // Свайп вверх (палец движется вверх) = deltaY > 0 = переход на фото выше (предыдущая строка)
+      // Свайп вверх: touchEnd.y < touchStart.y (палец движется вверх) = deltaY > 0
       if (deltaY > 0 && currentIndex - columnsPerRow >= 0) {
         onIndexChange(currentIndex - columnsPerRow);
         setTouchStart(null);
@@ -1417,6 +1424,10 @@ const FullscreenCarousel = ({
       if (isRightSwipe && currentIndex > 0) {
         onIndexChange(currentIndex - 1);
       }
+      setTouchStart(null);
+      setTouchEnd(null);
+    } else {
+      // Сбрасываем состояние, если свайп не распознан
       setTouchStart(null);
       setTouchEnd(null);
     }
@@ -1452,26 +1463,19 @@ const FullscreenCarousel = ({
           position: 'absolute',
           top: '20px',
           left: '20px',
-          width: '40px',
-          height: '40px',
-          borderRadius: '50%',
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          color: '#fff',
+          width: 'auto',
+          height: 'auto',
+          background: 'none',
+          color: '#000',
           border: 'none',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontSize: '24px',
+          fontSize: '32px',
           fontWeight: 'bold',
           zIndex: 1003,
-          transition: 'background-color 0.2s',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+          padding: '8px',
         }}
         aria-label="Назад"
       >
@@ -1487,6 +1491,7 @@ const FullscreenCarousel = ({
         height: '100%',
         gap: gap,
         alignItems: 'stretch',
+        paddingTop: '80px', // Отступ сверху, чтобы фото не выходило за зону стрелки
       }}>
         {photos.map((photo, index) => (
           <div
@@ -1495,7 +1500,7 @@ const FullscreenCarousel = ({
               minWidth: photoWidth,
               width: photoWidth,
               flexShrink: 0,
-              height: '100%',
+              height: 'calc(100% - 80px)', // Вычитаем отступ сверху
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
