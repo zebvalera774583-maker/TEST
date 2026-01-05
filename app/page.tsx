@@ -658,7 +658,7 @@ export default function Home() {
 
       {/* Контент админки: Заявки или основная страница */}
       {isAdmin && showContactRequests ? (
-        <ContactRequests />
+        <ContactRequests onBack={() => setShowContactRequests(false)} />
       ) : (
         <>
           {/* Кнопка загрузки фото (только для админа) - синяя кнопка как раньше */}

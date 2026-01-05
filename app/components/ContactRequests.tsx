@@ -10,7 +10,11 @@ interface ContactRequest {
   created_at: string;
 }
 
-export default function ContactRequests() {
+interface ContactRequestsProps {
+  onBack?: () => void;
+}
+
+export default function ContactRequests({ onBack }: ContactRequestsProps) {
   const [requests, setRequests] = useState<ContactRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -80,14 +84,47 @@ export default function ContactRequests() {
       maxWidth: '800px',
       margin: '0 auto',
     }}>
-      <h1 style={{
-        fontSize: '24px',
-        fontWeight: '600',
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '16px',
         marginBottom: '24px',
-        color: '#333',
       }}>
-        Заявки
-      </h1>
+        {onBack && (
+          <button
+            onClick={onBack}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: '24px',
+              color: '#333',
+              padding: '4px 8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'opacity 0.2s',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.opacity = '0.7';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.opacity = '1';
+            }}
+            aria-label="Назад"
+          >
+            ←
+          </button>
+        )}
+        <h1 style={{
+          fontSize: '24px',
+          fontWeight: '600',
+          color: '#333',
+          margin: 0,
+        }}>
+          Заявки
+        </h1>
+      </div>
 
       {requests.length === 0 ? (
         <div style={{
@@ -161,4 +198,5 @@ export default function ContactRequests() {
     </div>
   );
 }
+
 
