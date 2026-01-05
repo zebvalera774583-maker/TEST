@@ -1370,12 +1370,14 @@ const FullscreenCarousel = ({
   const minSwipeDistance = 50;
 
   const onTouchStart = (e: React.TouchEvent) => {
+    const touch = e.touches[0];
     setTouchEnd(null);
-    setTouchStart({ x: e.targetTouches[0].clientX, y: e.targetTouches[0].clientY });
+    setTouchStart({ x: touch.clientX, y: touch.clientY });
   };
 
   const onTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd({ x: e.targetTouches[0].clientX, y: e.targetTouches[0].clientY });
+    const touch = e.touches[0];
+    setTouchEnd({ x: touch.clientX, y: touch.clientY });
   };
 
   const onTouchEnd = () => {
@@ -1388,20 +1390,24 @@ const FullscreenCarousel = ({
     // Вертикальные свайпы для перехода на соседние фото из сетки (3 колонки)
     const columnsPerRow = 3;
     if (absDeltaY > absDeltaX && absDeltaY > minSwipeDistance) {
-      // Свайп вниз = переход на фото ниже (следующая строка)
+      // Свайп вниз (палец движется вниз) = deltaY < 0 = переход на фото ниже (следующая строка)
       if (deltaY < 0 && currentIndex + columnsPerRow < photos.length) {
         onIndexChange(currentIndex + columnsPerRow);
+        setTouchStart(null);
+        setTouchEnd(null);
         return;
       }
-      // Свайп вверх = переход на фото выше (предыдущая строка)
+      // Свайп вверх (палец движется вверх) = deltaY > 0 = переход на фото выше (предыдущая строка)
       if (deltaY > 0 && currentIndex - columnsPerRow >= 0) {
         onIndexChange(currentIndex - columnsPerRow);
+        setTouchStart(null);
+        setTouchEnd(null);
         return;
       }
     }
     
     // Горизонтальные свайпы (только если не было вертикального свайпа)
-    if (absDeltaX > absDeltaY) {
+    if (absDeltaX > absDeltaY && absDeltaX > minSwipeDistance) {
       const isLeftSwipe = deltaX > minSwipeDistance;
       const isRightSwipe = deltaX < -minSwipeDistance;
 
@@ -1411,6 +1417,8 @@ const FullscreenCarousel = ({
       if (isRightSwipe && currentIndex > 0) {
         onIndexChange(currentIndex - 1);
       }
+      setTouchStart(null);
+      setTouchEnd(null);
     }
   };
 
@@ -1434,6 +1442,41 @@ const FullscreenCarousel = ({
         overflow: 'hidden',
       }}
     >
+      {/* Кнопка "назад" в левом верхнем углу (как в Instagram) */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onClose();
+        }}
+        style={{
+          position: 'absolute',
+          top: '20px',
+          left: '20px',
+          width: '40px',
+          height: '40px',
+          borderRadius: '50%',
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          color: '#fff',
+          border: 'none',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '24px',
+          fontWeight: 'bold',
+          zIndex: 1003,
+          transition: 'background-color 0.2s',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+        }}
+        aria-label="Назад"
+      >
+        ‹
+      </button>
       {/* Контейнер изображений с видимыми частями соседних */}
       <div style={{
         display: 'flex',
