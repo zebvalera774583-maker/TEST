@@ -626,9 +626,14 @@ export default function Home() {
         </div>
       )}
 
-      {/* Кнопка загрузки фото (только для админа) - синяя кнопка как раньше */}
-      {isAdmin && (
-        <div style={{ marginBottom: '20px' }}>
+      {/* Контент админки: Заявки или основная страница */}
+      {isAdmin && showContactRequests ? (
+        <ContactRequests />
+      ) : (
+        <>
+          {/* Кнопка загрузки фото (только для админа) - синяя кнопка как раньше */}
+          {isAdmin && (
+            <div style={{ marginBottom: '20px' }}>
           <input
             ref={fileInputRef}
             type="file"
