@@ -163,31 +163,31 @@ export default function FullscreenCarousel({
   // =========================
   // 8) POINTER / SWIPE (вызов navigateVertical; логика жестов)
   // =========================
-  const commitVerticalSwipe = async (direction: 'prev' | 'next') => {
-    // Преобразуем direction в формат navigateVertical
-    const navDirection = direction === 'next' ? 'down' : 'up';
-    
-    // Проверяем, можно ли перейти (navigateVertical сама проверит границы)
-    const newIndex = direction === 'next' ? index + columnsPerRow : index - columnsPerRow;
-    
-    if (newIndex < 0 || newIndex >= photosLength) {
+  const commitVerticalSwipe = useCallback(async (direction: 'up' | 'down') => {
+    if (animating) return;
+
+    // Проверяем, можно ли перейти
+    if (direction === 'up' && !canGoUp) {
       setDragY(0);
       return;
     }
-    
-    // Сбрасываем accumulator при начале анимации
-    resetWheelAccumulator();
-    
+    if (direction === 'down' && !canGoDown) {
+      setDragY(0);
+      return;
+    }
+
+    // Анимация для swipe (визуальная обратная связь)
     setAnimating(true);
-    setDragY(direction === 'next' ? 160 : -160);
+    setDragY(direction === 'down' ? 160 : -160);
     await new Promise((r) => setTimeout(r, 140));
-    
+
     // Используем единую функцию навигации
-    navigateVertical(navDirection);
+    navigateVertical(direction);
+    
     setDragY(0);
     await new Promise((r) => setTimeout(r, 80));
     setAnimating(false);
-  };
+  }, [animating, canGoUp, canGoDown, navigateVertical]);
 
   const carouselPointerDown = (e: React.PointerEvent) => {
     if (animating) return;
@@ -248,11 +248,11 @@ export default function FullscreenCarousel({
 
     if (axis === 'y') {
       // Порог: если abs(dy) >= 60 и axis === "y"
-      // dy > 0 → палец движется вниз → следующий пост (next)
-      // dy < 0 → палец движется вверх → предыдущий пост (prev)
+      // dy > 0 → палец движется вниз → следующий пост (down)
+      // dy < 0 → палец движется вверх → предыдущий пост (up)
       // Иначе вернуть translateY в 0
       if (Math.abs(dy) >= 60) {
-        await commitVerticalSwipe(dy > 0 ? 'next' : 'prev');
+        await commitVerticalSwipe(dy > 0 ? 'down' : 'up');
       } else {
         setDragY(0);
       }
