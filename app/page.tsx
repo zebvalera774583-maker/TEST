@@ -1393,6 +1393,8 @@ const FullscreenCarousel = ({
     document.body.style.overflow = 'hidden';
     return () => {
       document.body.style.overflow = prev;
+      // Сбрасываем accumulator при закрытии viewer
+      wheelAccumulatorRef.current = 0;
     };
   }, []);
 
