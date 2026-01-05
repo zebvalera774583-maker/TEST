@@ -1350,13 +1350,28 @@ const FullscreenCarousel = ({
   onClose: () => void;
   onOpenContact: () => void;
 }) => {
+  // =========================
+  // 1) STATE (всё состояние — первым)
+  // =========================
   const [index, setIndex] = useState(currentIndex);
   const [dragY, setDragY] = useState(0);
   const [animating, setAnimating] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [captionExpanded, setCaptionExpanded] = useState(false);
+
+  // =========================
+  // 2) CONSTANTS (потом константы)
+  // =========================
+  const columnsPerRow = 3;          // фиксировано под текущую сетку
+  const WHEEL_THRESHOLD = 100;      // 80–120: чувствительность трекпада
+  const NAV_COOLDOWN_MS = 200;     // 150–250: защита от "дроби"
+
+  // =========================
+  // 3) REFS (потом refs — чтобы были доступны всем колбэкам/эффектам)
+  // =========================
+  const wheelAccumulatorRef = useRef<number>(0);
+  const lastNavTsRef = useRef<number>(0);
   const carouselRef = useRef<HTMLDivElement>(null);
-  
   const stateRef = useRef<{
     pointerId: number;
     startX: number;
@@ -1371,12 +1386,214 @@ const FullscreenCarousel = ({
     active: false,
   });
 
+  // =========================
+  // 4) DERIVED / MEMO (потом производные значения)
+  // =========================
+  const photosLength = photos.length;
+  const canGoUp = index - columnsPerRow >= 0;
+  const canGoDown = index + columnsPerRow < photosLength;
+
+  // =========================
+  // 5) HELPERS (потом вспомогательные функции)
+  // =========================
+  const resetWheelAccumulator = useCallback(() => {
+    wheelAccumulatorRef.current = 0;
+  }, []);
+
+  const guardCooldown = useCallback(() => {
+    const now = Date.now();
+    if (now - lastNavTsRef.current < NAV_COOLDOWN_MS) return false;
+    lastNavTsRef.current = now;
+    return true;
+  }, []);
+
+  const clamp = useCallback((v: number, min: number, max: number) => {
+    return Math.max(min, Math.min(max, v));
+  }, []);
+
+  // Функция изменения индекса
+  const handleIndexChange = useCallback((newIndex: number) => {
+    setIndex(newIndex);
+    onIndexChange(newIndex);
+    // Сбрасываем accumulator при смене индекса
+    resetWheelAccumulator();
+  }, [onIndexChange, resetWheelAccumulator]);
+
+  // =========================
+  // 6) ЕДИНАЯ НАВИГАЦИЯ (главная точка правды)
+  // =========================
+  const navigateVertical = useCallback((direction: 'up' | 'down') => {
+    if (animating) return;
+    if (!guardCooldown()) return;
+
+    const step = columnsPerRow;
+    const nextIndex = direction === 'down' ? index + step : index - step;
+
+    // границы
+    if (nextIndex < 0 || nextIndex >= photosLength) return;
+
+    // аккуратный сброс аккумулятора, чтобы "хвосты" не переносились
+    resetWheelAccumulator();
+
+    // Меняем индекс
+    handleIndexChange(nextIndex);
+  }, [animating, guardCooldown, index, photosLength, columnsPerRow, resetWheelAccumulator, handleIndexChange]);
+
+  // =========================
+  // 7) WHEEL HANDLER (только сигнал + accumulator)
+  // =========================
+  const handleWheelCapture = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
+    // НИЧЕГО не блокируем preventDefault/stopPropagation
+    if (animating) return;
+    if (photosLength <= 1) return;
+
+    // Игнорируем горизонтальную прокрутку (deltaX) - обрабатываем только вертикальную
+    if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+      return;
+    }
+
+    // накопление для трекпада
+    wheelAccumulatorRef.current += e.deltaY;
+
+    const acc = wheelAccumulatorRef.current;
+    if (Math.abs(acc) < WHEEL_THRESHOLD) return;
+
+    // направление
+    if (acc > 0) {
+      // вниз
+      if (canGoDown) navigateVertical('down');
+    } else {
+      // вверх
+      if (canGoUp) navigateVertical('up');
+    }
+
+    // сброс после срабатывания
+    resetWheelAccumulator();
+  }, [animating, photosLength, WHEEL_THRESHOLD, canGoDown, canGoUp, navigateVertical, resetWheelAccumulator]);
+
+  // =========================
+  // 8) SWIPE (вызов navigateVertical; логика жестов)
+  // =========================
+  const commitVerticalSwipe = async (direction: 'prev' | 'next') => {
+    // Преобразуем direction в формат navigateVertical
+    const navDirection = direction === 'next' ? 'down' : 'up';
+    
+    // Проверяем, можно ли перейти (navigateVertical сама проверит границы)
+    const newIndex = direction === 'next' ? index + columnsPerRow : index - columnsPerRow;
+    
+    if (newIndex < 0 || newIndex >= photosLength) {
+      setDragY(0);
+      return;
+    }
+    
+    // Сбрасываем accumulator при начале анимации
+    resetWheelAccumulator();
+    
+    setAnimating(true);
+    setDragY(direction === 'next' ? 160 : -160);
+    await new Promise((r) => setTimeout(r, 140));
+    
+    // Используем единую функцию навигации
+    navigateVertical(navDirection);
+    setDragY(0);
+    await new Promise((r) => setTimeout(r, 80));
+    setAnimating(false);
+  };
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    if (animating) return;
+    
+    // Игнорируем, если это клик по кнопке или другому интерактивному элементу
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'BUTTON' || target.closest('button')) {
+      return;
+    }
+    
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    
+    stateRef.current.pointerId = e.pointerId;
+    stateRef.current.startX = e.clientX;
+    stateRef.current.startY = e.clientY;
+    stateRef.current.axis = null;
+    stateRef.current.active = true;
+    setDragY(0);
+  };
+
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (!stateRef.current.active) return;
+    if (e.pointerId !== stateRef.current.pointerId) return;
+
+    const dx = e.clientX - stateRef.current.startX;
+    const dy = e.clientY - stateRef.current.startY;
+
+    // axis lock после небольшого движения
+    if (!stateRef.current.axis) {
+      const adx = Math.abs(dx);
+      const ady = Math.abs(dy);
+      if (adx < 8 && ady < 8) return;
+      stateRef.current.axis = adx > ady ? 'x' : 'y';
+    }
+
+    if (stateRef.current.axis === 'y') {
+      // КРИТИЧНО: preventDefault для блокировки нативного скролла на iOS
+      e.preventDefault();
+      const limited = clamp(dy, -220, 220);
+      setDragY(limited);
+    } else {
+      // X-ось: горизонтальная навигация (свайп влево/вправо)
+    }
+  };
+
+  const onPointerUp = async (e: React.PointerEvent) => {
+    if (!stateRef.current.active) return;
+    if (e.pointerId !== stateRef.current.pointerId) return;
+
+    stateRef.current.active = false;
+    
+    // Пересчитываем dy из координат события для актуального значения
+    const dy = e.clientY - stateRef.current.startY;
+    const axis = stateRef.current.axis;
+
+    stateRef.current.axis = null;
+    stateRef.current.pointerId = -1;
+
+    if (axis === 'y') {
+      // Порог: если abs(dy) >= 60 и axis === "y"
+      // dy > 0 → палец движется вниз → следующий пост (next)
+      // dy < 0 → палец движется вверх → предыдущий пост (prev)
+      // Иначе вернуть translateY в 0
+      if (Math.abs(dy) >= 60) {
+        await commitVerticalSwipe(dy > 0 ? 'next' : 'prev');
+      } else {
+        setDragY(0);
+      }
+    } else if (axis === 'x') {
+      // Горизонтальная навигация
+      const dx = e.clientX - stateRef.current.startX;
+      const minSwipeDistance = 50;
+      if (Math.abs(dx) > minSwipeDistance) {
+        if (dx > 0 && index > 0) {
+          handleIndexChange(index - 1);
+        } else if (dx < 0 && index < photosLength - 1) {
+          handleIndexChange(index + 1);
+        }
+      }
+      setDragY(0);
+    } else {
+      // Если ось не определена, просто сбрасываем
+      setDragY(0);
+    }
+  };
+
+  // =========================
+  // 9) EFFECTS (в конце — эффекты, чтобы не было "используется до объявления")
+  // =========================
   // Синхронизируем внутренний индекс с внешним
   useEffect(() => {
     setIndex(currentIndex);
     // Сбрасываем accumulator при смене индекса извне
-    wheelAccumulatorRef.current = 0;
-  }, [currentIndex]);
+    resetWheelAccumulator();
+  }, [currentIndex, resetWheelAccumulator]);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -1391,12 +1608,19 @@ const FullscreenCarousel = ({
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
+    // при открытии — сброс
+    resetWheelAccumulator();
     return () => {
       document.body.style.overflow = prev;
       // Сбрасываем accumulator при закрытии viewer
-      wheelAccumulatorRef.current = 0;
+      resetWheelAccumulator();
     };
-  }, []);
+  }, [resetWheelAccumulator]);
+
+  // при смене index — тоже сбрасываем накопитель
+  useEffect(() => {
+    resetWheelAccumulator();
+  }, [index, resetWheelAccumulator]);
 
   // Сбрасываем расширение подписи при смене фото
   useEffect(() => {
@@ -1407,7 +1631,7 @@ const FullscreenCarousel = ({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowLeft' && index > 0) {
         handleIndexChange(index - 1);
-      } else if (e.key === 'ArrowRight' && index < photos.length - 1) {
+      } else if (e.key === 'ArrowRight' && index < photosLength - 1) {
         handleIndexChange(index + 1);
       } else if (e.key === 'Escape') {
         onClose();
@@ -1416,112 +1640,7 @@ const FullscreenCarousel = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [index, photos.length, onClose]);
-
-  // Функция изменения индекса
-  const handleIndexChange = useCallback((newIndex: number) => {
-    setIndex(newIndex);
-    onIndexChange(newIndex);
-    // Сбрасываем accumulator при смене индекса
-    wheelAccumulatorRef.current = 0;
-  }, [onIndexChange]);
-
-  // Единая функция навигации по вертикали
-  const navigateVertical = useCallback((direction: 'up' | 'down') => {
-    // Защита от спама через timestamp
-    if (Date.now() - lastNavRef.current < 200) {
-      return;
-    }
-    
-    // Игнорируем, если идёт анимация
-    if (animating) {
-      return;
-    }
-    
-    const columnsPerRow = 3;
-    const newIndex = direction === 'down' ? index + columnsPerRow : index - columnsPerRow;
-    
-    // Проверяем границы массива
-    if (newIndex < 0 || newIndex >= photos.length) {
-      return;
-    }
-    
-    // Обновляем timestamp
-    lastNavRef.current = Date.now();
-    
-    // Меняем индекс
-    handleIndexChange(newIndex);
-  }, [index, photos.length, animating, handleIndexChange]);
-
-  // Обработчик wheel - БЕЗ preventDefault и stopPropagation
-  // Wheel - только сигнал, не управление скроллом
-  // Блокировку скролла делаем через body { overflow: hidden } (уже есть в useEffect выше)
-  const handleWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
-    // Игнорируем горизонтальную прокрутку (deltaX) - обрабатываем только вертикальную
-    if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
-      return;
-    }
-    
-    // Накопление deltaY в accumulator
-    wheelAccumulatorRef.current += e.deltaY;
-    
-    const THRESHOLD = 100; // Порог для срабатывания (80-120)
-    
-    // Если накопилось достаточно для перехода
-    if (Math.abs(wheelAccumulatorRef.current) >= THRESHOLD) {
-      const direction = wheelAccumulatorRef.current > 0 ? 'down' : 'up';
-      wheelAccumulatorRef.current = 0; // Сбрасываем accumulator
-      navigateVertical(direction);
-    }
-  }, [navigateVertical]);
-
-  const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
-
-  const handleVerticalNavigation = async (direction: 'prev' | 'next', columnsPerRow: number) => {
-    if (animating) return;
-    
-    const newIndex = direction === 'next' ? index + columnsPerRow : index - columnsPerRow;
-    if (newIndex < 0 || newIndex >= photos.length) {
-      setDragY(0);
-      return;
-    }
-
-    setAnimating(true);
-    setDragY(direction === 'next' ? 160 : -160);
-    await new Promise((r) => setTimeout(r, 140));
-    
-    handleIndexChange(newIndex);
-    setDragY(0);
-    await new Promise((r) => setTimeout(r, 80));
-    setAnimating(false);
-  };
-
-  const commitVerticalSwipe = async (direction: 'prev' | 'next') => {
-    // Преобразуем direction в формат navigateVertical
-    const navDirection = direction === 'next' ? 'down' : 'up';
-    
-    // Проверяем, можно ли перейти (navigateVertical сама проверит границы)
-    const columnsPerRow = 3;
-    const newIndex = direction === 'next' ? index + columnsPerRow : index - columnsPerRow;
-    
-    if (newIndex < 0 || newIndex >= photos.length) {
-      setDragY(0);
-      return;
-    }
-    
-    // Сбрасываем accumulator при начале анимации
-    wheelAccumulatorRef.current = 0;
-    
-    setAnimating(true);
-    setDragY(direction === 'next' ? 160 : -160);
-    await new Promise((r) => setTimeout(r, 140));
-    
-    // Используем единую функцию навигации
-    navigateVertical(navDirection);
-    setDragY(0);
-    await new Promise((r) => setTimeout(r, 80));
-    setAnimating(false);
-  };
+  }, [index, photosLength, onClose, handleIndexChange]);
 
   const onPointerDown = (e: React.PointerEvent) => {
     if (animating) return;
@@ -1632,7 +1751,7 @@ const FullscreenCarousel = ({
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
-      onWheelCapture={handleWheel}
+      onWheelCapture={handleWheelCapture}
       onTouchMove={(e) => {
         // КРИТИЧНО: fallback для iOS - если touch-action не сработал
         // Если на iOS всё равно двигается страница — значит touch-action не применился
