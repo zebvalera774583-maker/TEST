@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import imageCompression from 'browser-image-compression';
+import AdminMenu from './components/AdminMenu';
 
 interface SitePhoto {
   id: string;
