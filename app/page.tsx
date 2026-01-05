@@ -1374,6 +1374,8 @@ const FullscreenCarousel = ({
   // Синхронизируем внутренний индекс с внешним
   useEffect(() => {
     setIndex(currentIndex);
+    // Сбрасываем accumulator при смене индекса извне
+    wheelAccumulatorRef.current = 0;
   }, [currentIndex]);
 
   useEffect(() => {
@@ -1418,46 +1420,58 @@ const FullscreenCarousel = ({
   const handleIndexChange = useCallback((newIndex: number) => {
     setIndex(newIndex);
     onIndexChange(newIndex);
+    // Сбрасываем accumulator при смене индекса
+    wheelAccumulatorRef.current = 0;
   }, [onIndexChange]);
 
-  // Обработчик wheel - БЕЗ preventDefault (wheel по умолчанию passive)
-  // Используем wheel только как сигнал для навигации по вертикали (следующий/предыдущий фото)
+  // Единая функция навигации по вертикали
+  const navigateVertical = useCallback((direction: 'up' | 'down') => {
+    // Защита от спама через timestamp
+    if (Date.now() - lastNavRef.current < 200) {
+      return;
+    }
+    
+    // Игнорируем, если идёт анимация
+    if (animating) {
+      return;
+    }
+    
+    const columnsPerRow = 3;
+    const newIndex = direction === 'down' ? index + columnsPerRow : index - columnsPerRow;
+    
+    // Проверяем границы массива
+    if (newIndex < 0 || newIndex >= photos.length) {
+      return;
+    }
+    
+    // Обновляем timestamp
+    lastNavRef.current = Date.now();
+    
+    // Меняем индекс
+    handleIndexChange(newIndex);
+  }, [index, photos.length, animating, handleIndexChange]);
+
+  // Обработчик wheel - БЕЗ preventDefault и stopPropagation
+  // Wheel - только сигнал, не управление скроллом
   // Блокировку скролла делаем через body { overflow: hidden } (уже есть в useEffect выше)
   const handleWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
-    // НЕ вызываем preventDefault() - wheel обработчик passive по умолчанию
-    
-    if (animating) return;
-    
     // Игнорируем горизонтальную прокрутку (deltaX) - обрабатываем только вертикальную
     if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
-      return; // Горизонтальная прокрутка - игнорируем
+      return;
     }
     
-    const threshold = 50; // Минимальная прокрутка для срабатывания
+    // Накопление deltaY в accumulator
+    wheelAccumulatorRef.current += e.deltaY;
     
-    if (Math.abs(e.deltaY) < threshold) return;
+    const THRESHOLD = 100; // Порог для срабатывания (80-120)
     
-    // Останавливаем всплытие, чтобы Pointer Events не обрабатывали это как свайп
-    e.stopPropagation();
-    
-    // Используем ту же логику, что и в commitVerticalSwipe: 3 колонки в сетке
-    const columnsPerRow = 3;
-    
-    // Прокрутка вниз (deltaY > 0) → фото ниже в сетке (index + columnsPerRow)
-    if (e.deltaY > 0) {
-      const newIndex = index + columnsPerRow;
-      if (newIndex < photos.length) {
-        handleIndexChange(newIndex);
-      }
+    // Если накопилось достаточно для перехода
+    if (Math.abs(wheelAccumulatorRef.current) >= THRESHOLD) {
+      const direction = wheelAccumulatorRef.current > 0 ? 'down' : 'up';
+      wheelAccumulatorRef.current = 0; // Сбрасываем accumulator
+      navigateVertical(direction);
     }
-    // Прокрутка вверх (deltaY < 0) → фото выше в сетке (index - columnsPerRow)
-    else {
-      const newIndex = index - columnsPerRow;
-      if (newIndex >= 0) {
-        handleIndexChange(newIndex);
-      }
-    }
-  }, [index, photos.length, animating, handleIndexChange]);
+  }, [navigateVertical]);
 
   const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
 
@@ -1481,25 +1495,27 @@ const FullscreenCarousel = ({
   };
 
   const commitVerticalSwipe = async (direction: 'prev' | 'next') => {
-    if (animating) return;
+    // Преобразуем direction в формат navigateVertical
+    const navDirection = direction === 'next' ? 'down' : 'up';
     
+    // Проверяем, можно ли перейти (navigateVertical сама проверит границы)
     const columnsPerRow = 3;
     const newIndex = direction === 'next' ? index + columnsPerRow : index - columnsPerRow;
     
-    if (direction === 'prev' && newIndex < 0) {
+    if (newIndex < 0 || newIndex >= photos.length) {
       setDragY(0);
       return;
     }
-    if (direction === 'next' && newIndex >= photos.length) {
-      setDragY(0);
-      return;
-    }
-
+    
+    // Сбрасываем accumulator при начале анимации
+    wheelAccumulatorRef.current = 0;
+    
     setAnimating(true);
     setDragY(direction === 'next' ? 160 : -160);
     await new Promise((r) => setTimeout(r, 140));
     
-    handleIndexChange(newIndex);
+    // Используем единую функцию навигации
+    navigateVertical(navDirection);
     setDragY(0);
     await new Promise((r) => setTimeout(r, 80));
     setAnimating(false);
@@ -1614,7 +1630,7 @@ const FullscreenCarousel = ({
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
-      onWheel={handleWheel}
+      onWheelCapture={handleWheel}
       onTouchMove={(e) => {
         // КРИТИЧНО: fallback для iOS - если touch-action не сработал
         // Если на iOS всё равно двигается страница — значит touch-action не применился
