@@ -1428,12 +1428,17 @@ const FullscreenCarousel = ({
     
     if (animating) return;
     
-    // Игнорируем горизонтальную прокрутку (deltaX)
-    if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+    // Игнорируем горизонтальную прокрутку (deltaX) - обрабатываем только вертикальную
+    if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+      return; // Горизонтальная прокрутка - игнорируем
+    }
     
     const threshold = 50; // Минимальная прокрутка для срабатывания
     
     if (Math.abs(e.deltaY) < threshold) return;
+    
+    // Останавливаем всплытие, чтобы Pointer Events не обрабатывали это как свайп
+    e.stopPropagation();
     
     // Прокрутка вниз (deltaY > 0) → следующий фото (index + 1)
     if (e.deltaY > 0) {
