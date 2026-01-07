@@ -374,7 +374,7 @@ export default function FullscreenCarousel({
       style={{
         position: 'fixed',
         inset: 0,
-        background: '#000000',
+        background: '#ffffff',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -399,7 +399,7 @@ export default function FullscreenCarousel({
           width: 'auto',
           height: 'auto',
           background: 'none',
-          color: '#fff',
+          color: '#000',
           border: 'none',
           cursor: 'pointer',
           display: 'flex',
@@ -487,8 +487,8 @@ export default function FullscreenCarousel({
             width: '50px',
             height: '50px',
             borderRadius: '50%',
-            backgroundColor: 'rgba(255, 255, 255, 0.2)',
-            color: '#fff',
+            backgroundColor: 'rgba(0, 0, 0, 0.1)',
+            color: '#333',
             border: 'none',
             cursor: 'pointer',
             display: 'flex',
@@ -518,8 +518,8 @@ export default function FullscreenCarousel({
             width: '50px',
             height: '50px',
             borderRadius: '50%',
-            backgroundColor: 'rgba(255, 255, 255, 0.2)',
-            color: '#fff',
+            backgroundColor: 'rgba(0, 0, 0, 0.1)',
+            color: '#333',
             border: 'none',
             cursor: 'pointer',
             display: 'flex',
@@ -544,7 +544,7 @@ export default function FullscreenCarousel({
         flexDirection: 'column',
         alignItems: 'flex-start',
         padding: '10px 16px',
-        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        backgroundColor: '#ffffff',
       }}>
         {/* Кнопки телефона и сообщения - под фото, над текстом */}
         <div style={{
@@ -632,7 +632,7 @@ export default function FullscreenCarousel({
 
           return (
             <div style={{
-              color: '#fff',
+              color: '#000',
               textAlign: 'left',
               fontSize: isMobile ? '14px' : '16px',
               width: '100%',
