@@ -895,8 +895,8 @@ export default function Home() {
             fontSize: '14px',
             border: 'none',
             borderRadius: '0',
-            backgroundColor: '#485B78',
-            color: '#ffffff',
+            backgroundColor: '#e8e8e8',
+            color: '#333',
             cursor: 'pointer',
             transition: 'all 0.2s',
             minHeight: '40px',
@@ -905,10 +905,10 @@ export default function Home() {
             justifyContent: 'center',
             fontWeight: '500',
           }}
-          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5a6f8f'}
-          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#485B78'}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#d8d8d8'}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#e8e8e8'}
         >
-          Узнать стоимость
+          Расчёт
         </button>
         <button 
           onClick={handleShare}
@@ -918,8 +918,8 @@ export default function Home() {
             fontSize: '14px',
             border: 'none',
             borderRadius: '0',
-            backgroundColor: '#485B78',
-            color: '#ffffff',
+            backgroundColor: '#e8e8e8',
+            color: '#333',
             cursor: 'pointer',
             transition: 'all 0.2s',
             minHeight: '40px',
@@ -929,8 +929,8 @@ export default function Home() {
             fontWeight: '500',
             position: 'relative',
           }}
-          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5a6f8f'}
-          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#485B78'}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#d8d8d8'}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#e8e8e8'}
         >
           Поделиться
           {/* Уведомление о копировании */}
@@ -962,8 +962,8 @@ export default function Home() {
           fontSize: '14px',
           border: 'none',
           borderRadius: '0',
-          backgroundColor: '#485B78',
-          color: '#ffffff',
+          backgroundColor: '#e8e8e8',
+          color: '#333',
           cursor: 'pointer',
           transition: 'all 0.2s',
           minHeight: '40px',
@@ -972,8 +972,8 @@ export default function Home() {
           justifyContent: 'center',
           fontWeight: '500',
         }}
-        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5a6f8f'}
-        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#485B78'}
+        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#d8d8d8'}
+        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#e8e8e8'}
         >
           Связаться
         </button>
@@ -1099,7 +1099,7 @@ export default function Home() {
               marginBottom: '20px',
               textAlign: 'center',
             }}>
-              Узнать стоимость
+              Расчёт
             </h2>
             <form onSubmit={handleSubmitContactForm}>
               <div style={{ marginBottom: '20px' }}>
@@ -1193,8 +1193,8 @@ export default function Home() {
                     padding: '14px',
                     fontSize: '16px',
                     fontWeight: '500',
-                    backgroundColor: contactSubmitting ? '#999' : '#485B78',
-                    color: 'white',
+                    backgroundColor: contactSubmitting ? '#999' : '#e8e8e8',
+                    color: '#333',
                     border: 'none',
                     borderRadius: '8px',
                     cursor: contactSubmitting ? 'wait' : 'pointer',
