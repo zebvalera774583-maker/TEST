@@ -62,6 +62,7 @@ export default function FullscreenCarousel({
   const [animating, setAnimating] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [captionExpanded, setCaptionExpanded] = useState(false);
+  const [shareNotification, setShareNotification] = useState<string | null>(null);
 
   // =========================
   // 2) CONSTANTS (потом константы)
@@ -93,6 +94,59 @@ export default function FullscreenCarousel({
   // 4) DERIVED / MEMO (потом производные значения)
   // =========================
   const photosLength = photos.length;
+  
+  // =========================
+  // 4.5) SHARE HANDLER (обработка шаринга)
+  // =========================
+  const handleShare = useCallback(async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    const url = window.location.href;
+    const title = 'Ашот мебель - Фото галерея';
+    const text = `Посмотрите мою работу: ${title}`;
+    
+    // Проверяем поддержку Web Share API
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title,
+          text,
+          url,
+        });
+        return;
+      } catch (error: any) {
+        // Пользователь отменил шаринг или произошла ошибка
+        // Продолжаем с fallback на копирование
+        if (error.name !== 'AbortError') {
+          console.error('Ошибка шаринга:', error);
+        }
+      }
+    }
+    
+    // Fallback: копируем в буфер обмена
+    try {
+      await navigator.clipboard.writeText(url);
+      setShareNotification('Ссылка скопирована!');
+      setTimeout(() => setShareNotification(null), 2000);
+    } catch (error) {
+      // Если clipboard API не поддерживается, используем старый метод
+      const textArea = document.createElement('textarea');
+      textArea.value = url;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        setShareNotification('Ссылка скопирована!');
+        setTimeout(() => setShareNotification(null), 2000);
+      } catch (err) {
+        console.error('Ошибка копирования:', err);
+        alert(`Не удалось скопировать ссылку. Скопируйте вручную: ${url}`);
+      }
+      document.body.removeChild(textArea);
+    }
+  }, []);
 
   // =========================
   // 5) HELPERS (потом вспомогательные функции)
@@ -545,11 +599,12 @@ export default function FullscreenCarousel({
         padding: '10px 16px',
         backgroundColor: '#ffffff',
       }}>
-        {/* Кнопки телефона и сообщения - под фото, над текстом */}
+        {/* Кнопки телефона, сообщения и шаринга - под фото, над текстом */}
         <div style={{
           display: 'flex',
           gap: '15px',
           marginBottom: '8px',
+          position: 'relative',
         }}>
           <button
             onClick={(e) => {
@@ -589,6 +644,44 @@ export default function FullscreenCarousel({
           >
             📞
           </a>
+          <button
+            onClick={handleShare}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '24px',
+              padding: 0,
+            }}
+            title="Поделиться"
+          >
+            🔗
+          </button>
+          {/* Уведомление о копировании */}
+          {shareNotification && (
+            <div
+              style={{
+                position: 'absolute',
+                bottom: '100%',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                marginBottom: '10px',
+                padding: '8px 16px',
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                color: 'white',
+                borderRadius: '8px',
+                fontSize: '14px',
+                whiteSpace: 'nowrap',
+                zIndex: 1004,
+                pointerEvents: 'none',
+              }}
+            >
+              {shareNotification}
+            </div>
+          )}
         </div>
 
         {/* Индикатор карусели (точки) - под кнопками, над текстом */}
