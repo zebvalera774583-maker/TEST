@@ -557,6 +557,7 @@ export default function FullscreenCarousel({
               />
             </div>
           ))}
+          </div>
         </div>
       </div>
 
