@@ -433,6 +433,7 @@ export default function Home() {
         maxWidth: '800px',
         margin: '0 auto',
         textAlign: 'center',
+        background: 'transparent',
       }}>
         <p>Загрузка...</p>
       </main>
@@ -446,6 +447,7 @@ export default function Home() {
         maxWidth: '800px',
         margin: '0 auto',
         textAlign: 'center',
+        background: 'transparent',
       }}>
         <h1>Ашот мебель</h1>
         <p>Фотографии скоро появятся</p>
@@ -459,6 +461,7 @@ export default function Home() {
       maxWidth: '800px',
       margin: '0 auto',
       fontFamily: 'Arial, Helvetica, sans-serif',
+      background: 'transparent',
     }}>
       {/* Имя профиля в левом верхнем углу */}
       <h1 style={{ 
