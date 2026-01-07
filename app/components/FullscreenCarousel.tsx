@@ -374,7 +374,7 @@ export default function FullscreenCarousel({
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'transparent',
+        background: '#000000',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -392,14 +392,14 @@ export default function FullscreenCarousel({
           e.stopPropagation();
           onClose();
         }}
-        style={{
+          style={{
           position: 'absolute',
           top: '20px',
           left: '20px',
           width: 'auto',
           height: 'auto',
           background: 'none',
-          color: '#000',
+          color: '#fff',
           border: 'none',
           cursor: 'pointer',
           display: 'flex',
@@ -487,8 +487,8 @@ export default function FullscreenCarousel({
             width: '50px',
             height: '50px',
             borderRadius: '50%',
-            backgroundColor: 'rgba(0, 0, 0, 0.1)',
-            color: '#333',
+            backgroundColor: 'rgba(255, 255, 255, 0.2)',
+            color: '#fff',
             border: 'none',
             cursor: 'pointer',
             display: 'flex',
@@ -518,8 +518,8 @@ export default function FullscreenCarousel({
             width: '50px',
             height: '50px',
             borderRadius: '50%',
-            backgroundColor: 'rgba(0, 0, 0, 0.1)',
-            color: '#333',
+            backgroundColor: 'rgba(255, 255, 255, 0.2)',
+            color: '#fff',
             border: 'none',
             cursor: 'pointer',
             display: 'flex',
@@ -544,7 +544,7 @@ export default function FullscreenCarousel({
         flexDirection: 'column',
         alignItems: 'flex-start',
         padding: '10px 16px',
-        backgroundColor: 'transparent',
+        backgroundColor: 'rgba(0, 0, 0, 0.7)',
       }}>
         {/* Кнопки телефона и сообщения - под фото, над текстом */}
         <div style={{
@@ -632,7 +632,7 @@ export default function FullscreenCarousel({
 
           return (
             <div style={{
-              color: '#000',
+              color: '#fff',
               textAlign: 'left',
               fontSize: isMobile ? '14px' : '16px',
               width: '100%',
