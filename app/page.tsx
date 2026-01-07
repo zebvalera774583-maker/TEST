@@ -23,6 +23,9 @@ interface PhotoGroup {
   photos: SitePhoto[];
 }
 
+// Константа для имени профиля (единый источник)
+const PROFILE_NAME = 'ashot-zebelyan';
+
 export default function Home() {
   const [photos, setPhotos] = useState<SitePhoto[]>([]);
   const [photoGroups, setPhotoGroups] = useState<PhotoGroup[]>([]);
@@ -521,7 +524,7 @@ export default function Home() {
         margin: 0,
         marginBottom: '15px',
       }}>
-        ashot.zebelyan
+        {PROFILE_NAME}
       </h1>
 
       {/* Аватар и статистика */}
@@ -1057,6 +1060,7 @@ export default function Home() {
           canGoToPrevGroup={gallery.canGoToPrevGroup}
           canGoToNextGroup={gallery.canGoToNextGroup}
           goToPhoto={gallery.goToPhoto}
+          profileName={PROFILE_NAME}
         />
       )}
 

@@ -25,6 +25,7 @@ interface FullscreenCarouselProps {
   canGoToPrevGroup: boolean;
   canGoToNextGroup: boolean;
   goToPhoto: (photoIndex: number) => void;
+  profileName?: string;
 }
 
 /**
@@ -54,6 +55,7 @@ export default function FullscreenCarousel({
   canGoToPrevGroup,
   canGoToNextGroup,
   goToPhoto,
+  profileName = 'ashot-zebelyan',
 }: FullscreenCarouselProps) {
   // =========================
   // 1) STATE (всё состояние — первым)
@@ -439,34 +441,56 @@ export default function FullscreenCarousel({
         zIndex: 1000,
       }}
     >
-      {/* Кнопка "назад" в левом верхнем углу (как в Instagram) */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onClose();
-        }}
+      {/* Header: кнопка "назад" и заголовок */}
+      <div style={{
+        position: 'absolute',
+        top: '20px',
+        left: '20px',
+        right: '20px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        zIndex: 1003,
+      }}>
+        {/* Кнопка "назад" */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onClose();
+          }}
           style={{
-          position: 'absolute',
-          top: '20px',
-          left: '20px',
-          width: 'auto',
-          height: 'auto',
-          background: 'none',
-          color: '#000',
-          border: 'none',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '32px',
+            width: 'auto',
+            height: 'auto',
+            background: 'none',
+            color: '#000',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '32px',
+            fontWeight: 'bold',
+            padding: '8px',
+            flexShrink: 0,
+          }}
+          aria-label="Назад"
+        >
+          ‹
+        </button>
+        {/* Заголовок профиля */}
+        <div style={{
+          fontSize: isMobile ? '16px' : '18px',
           fontWeight: 'bold',
-          zIndex: 1003,
-          padding: '8px',
-        }}
-        aria-label="Назад"
-      >
-        ‹
-      </button>
+          color: '#000',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          flex: 1,
+          minWidth: 0,
+        }}>
+          {profileName}
+        </div>
+      </div>
       {/* Контейнер изображения с анимацией вертикального свайпа */}
       <div
         style={{
