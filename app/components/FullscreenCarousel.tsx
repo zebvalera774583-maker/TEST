@@ -14,9 +14,17 @@ interface SitePhoto {
 interface FullscreenCarouselProps {
   photos: SitePhoto[];
   currentIndex: number;
-  onIndexChange: (index: number) => void;
+  onNextPhoto: () => void;
+  onPrevPhoto: () => void;
+  onNextGroup: () => void;
+  onPrevGroup: () => void;
   onClose: () => void;
   onOpenContact: () => void;
+  canGoToPrevPhoto: boolean;
+  canGoToNextPhoto: boolean;
+  canGoToPrevGroup: boolean;
+  canGoToNextGroup: boolean;
+  goToPhoto: (photoIndex: number) => void;
 }
 
 /**
@@ -35,14 +43,21 @@ interface FullscreenCarouselProps {
 export default function FullscreenCarousel({
   photos,
   currentIndex,
-  onIndexChange,
+  onNextPhoto,
+  onPrevPhoto,
+  onNextGroup,
+  onPrevGroup,
   onClose,
-  onOpenContact
+  onOpenContact,
+  canGoToPrevPhoto,
+  canGoToNextPhoto,
+  canGoToPrevGroup,
+  canGoToNextGroup,
+  goToPhoto,
 }: FullscreenCarouselProps) {
   // =========================
   // 1) STATE (всё состояние — первым)
   // =========================
-  const [index, setIndex] = useState(currentIndex);
   const [dragY, setDragY] = useState(0);
   const [animating, setAnimating] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -51,7 +66,6 @@ export default function FullscreenCarousel({
   // =========================
   // 2) CONSTANTS (потом константы)
   // =========================
-  const columnsPerRow = 3;          // фиксировано под текущую сетку
   const WHEEL_THRESHOLD = 100;      // 80–120: чувствительность трекпада
   const NAV_COOLDOWN_MS = 200;     // 150–250: защита от "дроби"
 
@@ -61,7 +75,6 @@ export default function FullscreenCarousel({
   const wheelAccumulatorRef = useRef<number>(0);
   const lastNavTsRef = useRef<number>(0);
   const carouselRef = useRef<HTMLDivElement>(null);
-  const indexRef = useRef<number>(currentIndex); // Ref для актуального индекса
   const stateRef = useRef<{
     pointerId: number;
     startX: number;
@@ -80,8 +93,6 @@ export default function FullscreenCarousel({
   // 4) DERIVED / MEMO (потом производные значения)
   // =========================
   const photosLength = photos.length;
-  const canGoUp = useMemo(() => index - columnsPerRow >= 0, [index, columnsPerRow]);
-  const canGoDown = useMemo(() => index + columnsPerRow < photosLength, [index, photosLength, columnsPerRow]);
 
   // =========================
   // 5) HELPERS (потом вспомогательные функции)
@@ -101,36 +112,28 @@ export default function FullscreenCarousel({
     return Math.max(min, Math.min(max, v));
   }, []);
 
-  // Функция изменения индекса
-  const handleIndexChange = useCallback((newIndex: number) => {
-    indexRef.current = newIndex; // Обновляем ref
-    setIndex(newIndex);
-    onIndexChange(newIndex);
-    // Сбрасываем accumulator при смене индекса
-    resetWheelAccumulator();
-  }, [onIndexChange, resetWheelAccumulator]);
-
   // =========================
-  // 6) ЕДИНАЯ НАВИГАЦИЯ (главная точка правды)
+  // 6) НАВИГАЦИЯ (вызовы колбэков из хука)
   // =========================
+  // Вертикальная навигация (между группами)
   const navigateVertical = useCallback((direction: 'up' | 'down') => {
     if (animating) return;
     if (!guardCooldown()) return;
 
-    // Используем ref для получения актуального индекса
-    const currentIndex = indexRef.current;
-    const step = columnsPerRow;
-    const nextIndex = direction === 'down' ? currentIndex + step : currentIndex - step;
+    // Проверяем границы через пропсы
+    if (direction === 'down' && !canGoToNextGroup) return;
+    if (direction === 'up' && !canGoToPrevGroup) return;
 
-    // границы
-    if (nextIndex < 0 || nextIndex >= photosLength) return;
-
-    // аккуратный сброс аккумулятора, чтобы "хвосты" не переносились
+    // Сбрасываем accumulator
     resetWheelAccumulator();
 
-    // Меняем индекс
-    handleIndexChange(nextIndex);
-  }, [animating, guardCooldown, photosLength, columnsPerRow, resetWheelAccumulator, handleIndexChange]);
+    // Вызываем колбэк из хука
+    if (direction === 'down') {
+      onNextGroup();
+    } else {
+      onPrevGroup();
+    }
+  }, [animating, guardCooldown, canGoToNextGroup, canGoToPrevGroup, onNextGroup, onPrevGroup, resetWheelAccumulator]);
 
   // =========================
   // 7) WHEEL HANDLER (только сигнал + accumulator)
@@ -153,16 +156,16 @@ export default function FullscreenCarousel({
 
     // направление
     if (acc > 0) {
-      // вниз
-      if (canGoDown) navigateVertical('down');
+      // вниз → следующая группа
+      if (canGoToNextGroup) navigateVertical('down');
     } else {
-      // вверх
-      if (canGoUp) navigateVertical('up');
+      // вверх → предыдущая группа
+      if (canGoToPrevGroup) navigateVertical('up');
     }
 
     // сброс после срабатывания
     resetWheelAccumulator();
-  }, [animating, photosLength, WHEEL_THRESHOLD, canGoDown, canGoUp, navigateVertical, resetWheelAccumulator]);
+  }, [animating, photosLength, WHEEL_THRESHOLD, canGoToNextGroup, canGoToPrevGroup, navigateVertical, resetWheelAccumulator]);
 
   // =========================
   // 8) POINTER / SWIPE (вызов navigateVertical; логика жестов)
@@ -170,12 +173,12 @@ export default function FullscreenCarousel({
   const commitVerticalSwipe = useCallback(async (direction: 'up' | 'down') => {
     if (animating) return;
 
-    // Проверяем, можно ли перейти
-    if (direction === 'up' && !canGoUp) {
+    // Проверяем, можно ли перейти (через пропсы из хука)
+    if (direction === 'up' && !canGoToPrevGroup) {
       setDragY(0);
       return;
     }
-    if (direction === 'down' && !canGoDown) {
+    if (direction === 'down' && !canGoToNextGroup) {
       setDragY(0);
       return;
     }
@@ -191,7 +194,7 @@ export default function FullscreenCarousel({
     setDragY(0);
     await new Promise((r) => setTimeout(r, 80));
     setAnimating(false);
-  }, [animating, canGoUp, canGoDown, navigateVertical]);
+  }, [animating, canGoToPrevGroup, canGoToNextGroup, navigateVertical, canGoToPrevPhoto, canGoToNextPhoto, onPrevPhoto, onNextPhoto]);
 
   const carouselPointerDown = (e: React.PointerEvent) => {
     if (animating) return;
@@ -261,15 +264,16 @@ export default function FullscreenCarousel({
         setDragY(0);
       }
     } else if (axis === 'x') {
-      // Горизонтальная навигация
+      // Горизонтальная навигация (между фото в группе)
       const dx = e.clientX - stateRef.current.startX;
       const minSwipeDistance = 50;
-      const currentIndex = indexRef.current; // Используем ref для актуального индекса
       if (Math.abs(dx) > minSwipeDistance) {
-        if (dx > 0 && currentIndex > 0) {
-          handleIndexChange(currentIndex - 1);
-        } else if (dx < 0 && currentIndex < photosLength - 1) {
-          handleIndexChange(currentIndex + 1);
+        if (dx > 0 && canGoToPrevPhoto) {
+          // Свайп вправо → предыдущее фото
+          onPrevPhoto();
+        } else if (dx < 0 && canGoToNextPhoto) {
+          // Свайп влево → следующее фото
+          onNextPhoto();
         }
       }
       setDragY(0);
@@ -282,11 +286,8 @@ export default function FullscreenCarousel({
   // =========================
   // 9) EFFECTS (в конце — эффекты, чтобы не было "используется до объявления")
   // =========================
-  // Синхронизируем внутренний индекс с внешним
+  // Сбрасываем accumulator при смене индекса извне
   useEffect(() => {
-    indexRef.current = currentIndex; // Обновляем ref
-    setIndex(currentIndex);
-    // Сбрасываем accumulator при смене индекса извне
     resetWheelAccumulator();
   }, [currentIndex, resetWheelAccumulator]);
 
@@ -312,23 +313,21 @@ export default function FullscreenCarousel({
     };
   }, [resetWheelAccumulator]);
 
-  // при смене index — тоже сбрасываем накопитель
-  useEffect(() => {
-    resetWheelAccumulator();
-  }, [index, resetWheelAccumulator]);
-
   // Сбрасываем расширение подписи при смене фото
   useEffect(() => {
     setCaptionExpanded(false);
-  }, [index]);
+  }, [currentIndex]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      const currentIndex = indexRef.current; // Используем ref для актуального индекса
-      if (e.key === 'ArrowLeft' && currentIndex > 0) {
-        handleIndexChange(currentIndex - 1);
-      } else if (e.key === 'ArrowRight' && currentIndex < photosLength - 1) {
-        handleIndexChange(currentIndex + 1);
+      if (e.key === 'ArrowLeft' && canGoToPrevPhoto) {
+        onPrevPhoto();
+      } else if (e.key === 'ArrowRight' && canGoToNextPhoto) {
+        onNextPhoto();
+      } else if (e.key === 'ArrowUp' && canGoToPrevGroup) {
+        onPrevGroup();
+      } else if (e.key === 'ArrowDown' && canGoToNextGroup) {
+        onNextGroup();
       } else if (e.key === 'Escape') {
         onClose();
       }
@@ -336,7 +335,7 @@ export default function FullscreenCarousel({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [photosLength, onClose, handleIndexChange]);
+  }, [canGoToPrevPhoto, canGoToNextPhoto, canGoToPrevGroup, canGoToNextGroup, onPrevPhoto, onNextPhoto, onPrevGroup, onNextGroup, onClose]);
 
   // =========================
   // 10) JSX (ниже — разметка)
@@ -430,8 +429,8 @@ export default function FullscreenCarousel({
         <div style={{
           display: 'flex',
           transform: isMobile 
-            ? `translateX(-${index * 100}%)`
-            : `translateX(calc(-${index} * (${photoWidth} + ${gap}) + (100% - ${photoWidth}) / 2))`,
+            ? `translateX(-${currentIndex * 100}%)`
+            : `translateX(calc(-${currentIndex} * (${photoWidth} + ${gap}) + (100% - ${photoWidth}) / 2))`,
           transition: stateRef.current.active && stateRef.current.axis === 'y' ? 'none' : 'transform 0.3s ease',
           height: 'calc(92vh - 80px)',
           gap: gap,
@@ -472,12 +471,12 @@ export default function FullscreenCarousel({
       </div>
 
       {/* Стрелка влево */}
-      {photos.length > 1 && index > 0 && (
+      {photos.length > 1 && canGoToPrevPhoto && (
         <button
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            handleIndexChange(indexRef.current - 1);
+            onPrevPhoto();
           }}
           style={{
             position: 'absolute',
@@ -503,12 +502,12 @@ export default function FullscreenCarousel({
       )}
 
       {/* Стрелка вправо */}
-      {photos.length > 1 && index < photos.length - 1 && (
+      {photos.length > 1 && canGoToNextPhoto && (
         <button
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            handleIndexChange(indexRef.current + 1);
+            onNextPhoto();
           }}
           style={{
             position: 'absolute',
@@ -604,14 +603,14 @@ export default function FullscreenCarousel({
                 key={photoIndex}
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleIndexChange(photoIndex);
+                  goToPhoto(photoIndex);
                 }}
                 style={{
                   width: '4px',
                   height: '4px',
                   borderRadius: '50%',
                   border: 'none',
-                  backgroundColor: photoIndex === index ? 'rgba(72, 91, 120, 0.6)' : 'rgba(72, 91, 120, 0.2)',
+                  backgroundColor: photoIndex === currentIndex ? 'rgba(72, 91, 120, 0.6)' : 'rgba(72, 91, 120, 0.2)',
                   cursor: 'pointer',
                   transition: 'background-color 0.2s',
                   padding: 0,
@@ -623,8 +622,8 @@ export default function FullscreenCarousel({
 
         {/* Подпись под фото */}
         {(() => {
-          const currentCaption = photos[index]?.caption;
-          const displayText = currentCaption || `Фото ${index + 1} из ${photos.length}`;
+          const currentCaption = photos[currentIndex]?.caption;
+          const displayText = currentCaption || `Фото ${currentIndex + 1} из ${photos.length}`;
           const shouldTruncate = displayText.length > 20;
           const truncatedText = shouldTruncate && !captionExpanded 
             ? displayText.substring(0, 20) + '...' 

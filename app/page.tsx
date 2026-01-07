@@ -7,6 +7,7 @@ import AdminMenu from './components/AdminMenu';
 import ContactRequests from './components/ContactRequests';
 import PageWeightIndicator from './components/PageWeightIndicator';
 import FullscreenCarousel from './components/FullscreenCarousel';
+import { useGallery } from './hooks/useGallery';
 
 interface SitePhoto {
   id: string;
@@ -26,9 +27,10 @@ export default function Home() {
   const [photos, setPhotos] = useState<SitePhoto[]>([]);
   const [photoGroups, setPhotoGroups] = useState<PhotoGroup[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [openFullscreen, setOpenFullscreen] = useState<{ groupId: string; photoIndex: number } | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  
+  // Галерея - вся логика навигации и состояния
+  const gallery = useGallery(photoGroups);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -908,12 +910,12 @@ export default function Home() {
             gridTemplateColumns: 'repeat(3, 1fr)',
             gap: '2px',
           }}>
-            {photoGroups.map((group) => (
+            {photoGroups.map((group, groupIndex) => (
               <PhotoGridItem
                 key={group.groupId}
                 group={group}
                 isAdmin={isAdmin}
-                onOpenFullscreen={(photoIndex) => setOpenFullscreen({ groupId: group.groupId, photoIndex })}
+                onOpenFullscreen={(photoIndex) => gallery.openGallery(groupIndex, photoIndex)}
                 onDelete={isAdmin ? (photoId) => handleDelete(photoId) : undefined}
               />
             ))}
@@ -927,10 +929,17 @@ export default function Home() {
             gridTemplateColumns: 'repeat(3, 1fr)',
             gap: '2px',
           }}>
-            {photos.map((photo) => (
+            {photos.map((photo, index) => {
+              // Находим индекс группы для этого фото
+              const groupIndex = photoGroups.findIndex(g => g.photos.some(p => p.id === photo.id));
+              return (
               <div
                 key={photo.id}
-                onClick={() => setOpenFullscreen({ groupId: `single-${photo.id}`, photoIndex: 0 })}
+                onClick={() => {
+                  if (groupIndex >= 0) {
+                    gallery.openGallery(groupIndex, 0);
+                  }
+                }}
                 style={{
                   aspectRatio: '1',
                   overflow: 'hidden',
@@ -948,7 +957,8 @@ export default function Home() {
                   }}
                 />
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       ) : !loading ? (
@@ -958,19 +968,23 @@ export default function Home() {
       ) : null}
 
       {/* Модальное окно на весь экран */}
-      {openFullscreen && (() => {
-        const group = photoGroups.find(g => g.groupId === openFullscreen.groupId);
-        if (!group) return null;
-        return (
-          <FullscreenCarousel 
-            photos={group.photos}
-            currentIndex={openFullscreen.photoIndex}
-            onIndexChange={(index) => setOpenFullscreen({ ...openFullscreen, photoIndex: index })}
-            onClose={() => setOpenFullscreen(null)}
-            onOpenContact={() => setShowContactModal(true)}
-          />
-        );
-      })()}
+      {gallery.isFullscreen && gallery.currentGroup && (
+        <FullscreenCarousel 
+          photos={gallery.currentPhotos}
+          currentIndex={gallery.activePhotoIndex}
+          onNextPhoto={gallery.nextPhoto}
+          onPrevPhoto={gallery.prevPhoto}
+          onNextGroup={gallery.nextGroup}
+          onPrevGroup={gallery.prevGroup}
+          onClose={gallery.closeGallery}
+          onOpenContact={() => setShowContactModal(true)}
+          canGoToPrevPhoto={gallery.canGoToPrevPhoto}
+          canGoToNextPhoto={gallery.canGoToNextPhoto}
+          canGoToPrevGroup={gallery.canGoToPrevGroup}
+          canGoToNextGroup={gallery.canGoToNextGroup}
+          goToPhoto={gallery.goToPhoto}
+        />
+      )}
 
       {/* Модальное окно формы заявки */}
       {showContactModal && (
