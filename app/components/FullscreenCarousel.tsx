@@ -374,7 +374,7 @@ export default function FullscreenCarousel({
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(255, 255, 255, 0.95)',
+        background: 'transparent',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -544,7 +544,7 @@ export default function FullscreenCarousel({
         flexDirection: 'column',
         alignItems: 'flex-start',
         padding: '10px 16px',
-        backgroundColor: '#fff',
+        backgroundColor: 'transparent',
       }}>
         {/* Кнопки телефона и сообщения - под фото, над текстом */}
         <div style={{
