@@ -396,9 +396,9 @@ export default function FullscreenCarousel({
   // =========================
   // 10) JSX (ниже — разметка)
   // =========================
-  // Ширина одного фото (100% на мобильных, 80% на десктопе)
-  const photoWidth = isMobile ? '100%' : '80%';
-  const gap = isMobile ? '0%' : '2%';
+  // Viewport: фиксированное окно одного кадра
+  const viewportWidth = isMobile ? '100vw' : '80vw';
+  const viewportMaxHeight = 'calc(100vh - 200px)'; // Учитываем header (80px) + footer (120px)
 
   return (
     <div
@@ -496,40 +496,52 @@ export default function FullscreenCarousel({
         style={{
           transform: `translateY(${dragY}px)`,
           transition: stateRef.current.active ? 'none' : 'transform 160ms ease',
-          maxWidth: '96vw',
-          maxHeight: '92vh',
           paddingTop: '80px', // Отступ сверху для кнопки "назад"
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          width: '100%',
+          height: '100%',
         }}
       >
-        <div style={{
-          display: 'flex',
-          transform: isMobile 
-            ? `translateX(-${currentIndex * 100}%)`
-            : `translateX(calc(-${currentIndex} * (${photoWidth} + ${gap}) + (100% - ${photoWidth}) / 2))`,
-          transition: stateRef.current.active && stateRef.current.axis === 'y' ? 'none' : 'transform 0.3s ease',
-          height: 'calc(92vh - 80px)',
-          gap: gap,
-          alignItems: 'stretch',
-          width: '100%',
-        }}>
-          {photos.map((photo, photoIndex) => (
-            <div
-              key={photo.id}
-              style={{
-                minWidth: photoWidth,
-                width: photoWidth,
-                flexShrink: 0,
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                overflow: 'hidden',
-              }}
-            >
+        {/* Viewport: фиксированное окно одного кадра с overflow: hidden */}
+        <div
+          style={{
+            width: viewportWidth,
+            height: viewportMaxHeight,
+            maxHeight: viewportMaxHeight,
+            overflow: 'hidden', // КРИТИЧНО: обрезает соседние фото
+            position: 'relative',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-start',
+          }}
+        >
+          {/* Track: лента слайдов с transform */}
+          <div style={{
+            display: 'flex',
+            gap: 0, // КРИТИЧНО: убрать gap, иначе будут щели
+            transform: `translateX(-${currentIndex * 100}%)`, // Простой transform без calc: 100% = ширина viewport
+            transition: stateRef.current.active && stateRef.current.axis === 'y' ? 'none' : 'transform 0.3s ease',
+            height: '100%',
+            alignItems: 'stretch',
+          }}>
+            {photos.map((photo, photoIndex) => (
+              <div
+                key={photo.id}
+                style={{
+                  width: '100%', // 100% ширины viewport
+                  minWidth: '100%', // Минимум = 100% viewport
+                  flexShrink: 0, // Не сжимается
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  overflow: 'hidden',
+                  padding: '20px', // Отступы для "воздуха" вокруг фото (вместо gap)
+                }}
+              >
               <img
                 src={photo.public_url}
                 alt={`Photo ${photoIndex + 1}`}
