@@ -43,6 +43,7 @@ export default function Home() {
   const [contactSubmitting, setContactSubmitting] = useState(false);
   const [adminMenuOpen, setAdminMenuOpen] = useState(false);
   const [showContactRequests, setShowContactRequests] = useState(false);
+  const [shareNotification, setShareNotification] = useState<string | null>(null);
 
   // Загружаем фото и увеличиваем счетчик просмотров
   useEffect(() => {
@@ -391,6 +392,54 @@ export default function Home() {
       alert('Ошибка изменения порядка');
     }
   };
+
+  const handleShare = useCallback(async () => {
+    const url = window.location.href;
+    const title = 'Ашот мебель - Фото галерея';
+    const text = `Посмотрите мою работу: ${title}`;
+    
+    // Проверяем поддержку Web Share API
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title,
+          text,
+          url,
+        });
+        return;
+      } catch (error: any) {
+        // Пользователь отменил шаринг или произошла ошибка
+        // Продолжаем с fallback на копирование
+        if (error.name !== 'AbortError') {
+          console.error('Ошибка шаринга:', error);
+        }
+      }
+    }
+    
+    // Fallback: копируем в буфер обмена
+    try {
+      await navigator.clipboard.writeText(url);
+      setShareNotification('Ссылка скопирована!');
+      setTimeout(() => setShareNotification(null), 2000);
+    } catch (error) {
+      // Если clipboard API не поддерживается, используем старый метод
+      const textArea = document.createElement('textarea');
+      textArea.value = url;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        setShareNotification('Ссылка скопирована!');
+        setTimeout(() => setShareNotification(null), 2000);
+      } catch (err) {
+        console.error('Ошибка копирования:', err);
+        alert(`Не удалось скопировать ссылку. Скопируйте вручную: ${url}`);
+      }
+      document.body.removeChild(textArea);
+    }
+  }, []);
 
   const handleSubmitContactForm = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -858,26 +907,51 @@ export default function Home() {
         >
           Узнать стоимость
         </button>
-        <button style={{
-          width: '100%',
-          padding: '10px 20px',
-          fontSize: '14px',
-          border: 'none',
-          borderRadius: '0',
-          backgroundColor: '#485B78',
-          color: '#ffffff',
-          cursor: 'pointer',
-          transition: 'all 0.2s',
-          minHeight: '40px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontWeight: '500',
-        }}
-        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5a6f8f'}
-        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#485B78'}
+        <button 
+          onClick={handleShare}
+          style={{
+            width: '100%',
+            padding: '10px 20px',
+            fontSize: '14px',
+            border: 'none',
+            borderRadius: '0',
+            backgroundColor: '#485B78',
+            color: '#ffffff',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            minHeight: '40px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontWeight: '500',
+            position: 'relative',
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5a6f8f'}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#485B78'}
         >
           Поделиться
+          {/* Уведомление о копировании */}
+          {shareNotification && (
+            <div
+              style={{
+                position: 'absolute',
+                bottom: '100%',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                marginBottom: '10px',
+                padding: '8px 16px',
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                color: 'white',
+                borderRadius: '8px',
+                fontSize: '14px',
+                whiteSpace: 'nowrap',
+                zIndex: 1000,
+                pointerEvents: 'none',
+              }}
+            >
+              {shareNotification}
+            </div>
+          )}
         </button>
         <button style={{
           width: '100%',
