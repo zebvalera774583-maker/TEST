@@ -349,11 +349,21 @@ export default function FullscreenCarousel({
 
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
+      // Определение mobile через touch capability + ширину экрана
+      const hasTouch = window.navigator.maxTouchPoints > 0 || 
+                       window.matchMedia('(pointer: coarse)').matches;
+      const isSmallScreen = window.innerWidth <= 768;
+      setIsMobile(hasTouch || isSmallScreen);
     };
     checkMobile();
     window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    // Слушаем изменения media query для touch
+    const touchMediaQuery = window.matchMedia('(pointer: coarse)');
+    touchMediaQuery.addEventListener('change', checkMobile);
+    return () => {
+      window.removeEventListener('resize', checkMobile);
+      touchMediaQuery.removeEventListener('change', checkMobile);
+    };
   }, []);
 
   // Блокируем нативный скролл при открытом viewer
@@ -398,7 +408,10 @@ export default function FullscreenCarousel({
   // =========================
   // Viewport: фиксированное окно одного кадра
   const viewportWidth = isMobile ? '100vw' : '80vw';
-  const viewportMaxHeight = 'calc(100vh - 200px)'; // Учитываем header (80px) + footer (120px)
+  // Используем dvh где поддерживается, иначе fallback на vh
+  // Адаптивное вычитание: меньше на мобильных
+  const heightSubtraction = isMobile ? '140px' : '200px'; // header (~80px) + footer (~60-120px)
+  const viewportMaxHeight = `calc(100dvh - ${heightSubtraction})`;
 
   return (
     <div
@@ -539,7 +552,7 @@ export default function FullscreenCarousel({
                   alignItems: 'center',
                   justifyContent: 'center',
                   overflow: 'hidden',
-                  padding: '20px', // Отступы для "воздуха" вокруг фото (вместо gap)
+                  padding: isMobile ? '10px' : '20px', // Меньше padding на мобильных для большего фото
                 }}
               >
               <img

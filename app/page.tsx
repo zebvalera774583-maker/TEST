@@ -510,6 +510,7 @@ export default function Home() {
   }
 
   return (
+    <>
     <main style={{ 
       padding: '40px 20px',
       maxWidth: '800px',
@@ -1044,26 +1045,6 @@ export default function Home() {
         </div>
       ) : null}
 
-      {/* Модальное окно на весь экран */}
-      {gallery.isFullscreen && gallery.currentGroup && (
-        <FullscreenCarousel 
-          photos={gallery.currentPhotos}
-          currentIndex={gallery.activePhotoIndex}
-          onNextPhoto={gallery.nextPhoto}
-          onPrevPhoto={gallery.prevPhoto}
-          onNextGroup={gallery.nextGroup}
-          onPrevGroup={gallery.prevGroup}
-          onClose={gallery.closeGallery}
-          onOpenContact={() => setShowContactModal(true)}
-          canGoToPrevPhoto={gallery.canGoToPrevPhoto}
-          canGoToNextPhoto={gallery.canGoToNextPhoto}
-          canGoToPrevGroup={gallery.canGoToPrevGroup}
-          canGoToNextGroup={gallery.canGoToNextGroup}
-          goToPhoto={gallery.goToPhoto}
-          profileName={PROFILE_NAME}
-        />
-      )}
-
       {/* Модальное окно формы заявки */}
       {showContactModal && (
         <div
@@ -1228,8 +1209,28 @@ export default function Home() {
       )}
         </>
       )}
-
     </main>
+
+    {/* FullscreenCarousel рендерится вне <main> на корне страницы */}
+    {gallery.isFullscreen && gallery.currentGroup && (
+      <FullscreenCarousel 
+        photos={gallery.currentPhotos}
+        currentIndex={gallery.activePhotoIndex}
+        onNextPhoto={gallery.nextPhoto}
+        onPrevPhoto={gallery.prevPhoto}
+        onNextGroup={gallery.nextGroup}
+        onPrevGroup={gallery.prevGroup}
+        onClose={gallery.closeGallery}
+        onOpenContact={() => setShowContactModal(true)}
+        canGoToPrevPhoto={gallery.canGoToPrevPhoto}
+        canGoToNextPhoto={gallery.canGoToNextPhoto}
+        canGoToPrevGroup={gallery.canGoToPrevGroup}
+        canGoToNextGroup={gallery.canGoToNextGroup}
+        goToPhoto={gallery.goToPhoto}
+        profileName={PROFILE_NAME}
+      />
+    )}
+  </>
   );
 }
 
